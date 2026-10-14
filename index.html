@@ -3520,6 +3520,39 @@ html.dark .sk{
   }
 }
 </style>
+
+<style id="weekly-mobile-billboard-fonts-v54">
+@media(max-width:767px){
+  /* Billboard font split: grotesk display for rank/title; Inter for artist/meta.
+     Post Grotesk itself is proprietary, so Daegon's loaded grotesk is the legal
+     display substitute while preserving Billboard's typographic structure. */
+  .chart-card .m-rank-num,
+  .chart-card .m-title{
+    font-family:"Daegon Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif!important;
+  }
+  .chart-card .m-rank-num{
+    font-weight:800!important;
+    letter-spacing:-.035em!important;
+  }
+  .chart-card .m-title{
+    font-weight:700!important;
+    letter-spacing:-.018em!important;
+  }
+  .chart-card .m-artist,
+  .chart-card .m-album-ref,
+  .chart-card .m-metrics,
+  .chart-card .m-weeks-no1{
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-weight:400!important;
+    letter-spacing:0!important;
+  }
+  .chart-card .m-metrics b,
+  .chart-card .m-weeks-no1 b{
+    font-family:inherit!important;
+    font-weight:400!important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="shell">
