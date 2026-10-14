@@ -944,9 +944,10 @@ function ensureShell(){
     mobileMenu.id='portalMobileMenu';
     mobileMenu.className='portal-mobile-drawer';
     mobileMenu.innerHTML=[
-      ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
-      ['CHARTS','/chart/daegon-100'],['FORUM','/forum'],['PLANS','/plans'],['ABOUT','/about']
-    ].map(([l,p])=>'<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
+      ['NEWS','/news'],['CHART BEAT','/chart-beat'],['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['METHODOLOGY','/methodology'],['ABOUT','/about']
+    ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
+      ? '<a href="'+appHref(p)+'">'+l+'</a>'
+      : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
     mobileBtn.setAttribute('aria-expanded','false');
     mobileMenu.setAttribute('aria-hidden','true');
     mobileMenu.style.display='none';
