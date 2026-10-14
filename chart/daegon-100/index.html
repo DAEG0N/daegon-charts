@@ -3857,6 +3857,35 @@ html.dark .sk{
   .chart-card .m-actions .action{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px!important}
 }
 </style>
+
+<style id="weekly-mobile-title-artist-gap-fix-v52">
+@media(max-width:767px){
+  /* Kill the inherited fixed grid rows that were reserving empty space
+     between the title and artist. */
+  .chart-card .m-entry{
+    grid-template-rows:none!important;
+    grid-auto-rows:auto!important;
+    row-gap:0!important;
+  }
+  .chart-card .m-title{
+    grid-row:auto!important;
+    min-height:0!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  .chart-card .m-artist{
+    grid-row:auto!important;
+    min-height:0!important;
+    height:auto!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  .chart-card .m-title + .m-artist{
+    margin-top:0!important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="shell">
