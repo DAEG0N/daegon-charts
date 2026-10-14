@@ -921,9 +921,10 @@ function ensureShell(){
     navEl.id='portalTopNav';
     navEl.className='portal-topnav';
     navEl.innerHTML=[
-      ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
-      ['CHARTS','/chart/daegon-100'],['GLOBAL','/global'],['FORUM','/forum'],['PLANS','/plans'],['ABOUT','/about']
-    ].map(([l,p])=>'<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
+      ['NEWS','/news'],['CHART BEAT','/chart-beat'],['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['METHODOLOGY','/methodology'],['ABOUT','/about']
+    ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
+      ? '<a href="'+appHref(p)+'">'+l+'</a>'
+      : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
     const theme=document.getElementById('themeToggle');
     head.insertBefore(navEl,theme);
     const brand=document.querySelector('.brand');
@@ -976,20 +977,13 @@ function ensureShell(){
     searchBtn.innerHTML='<i class="fas fa-search"></i>';
     searchBtn.onclick=()=>go('/search');
     head.insertBefore(searchBtn,theme);
-    const accountBtn=document.createElement('button');
-    accountBtn.id='portalAccountBtn';
-    accountBtn.className='portal-account-btn';
-    accountBtn.type='button';
-    accountBtn.onclick=()=>_dcAuthUser?go('/my-daegon'):dcShowAuthModal();
-
+    // Public SaaS/login UI is intentionally disabled. Keep only site controls.
     const headerActions=document.createElement('div');
     headerActions.id='portalHeaderActions';
     headerActions.className='portal-header-actions';
-    headerActions.appendChild(accountBtn);
     if(theme)headerActions.appendChild(theme);
     head.appendChild(headerActions);
 
-    dcSyncAccountButton();
     document.querySelector('.site-header').appendChild(mobileMenu);
   }
 }
@@ -1454,24 +1448,17 @@ async function renderHome(){
 
   const weeklyStory=latestDate?'<section class="mag-weekly-promo"><div><div class="mag-kicker">Chart Beat Weekly</div><h2>The stories behind this week’s Daegon 100</h2><p>Movement, new peaks, debuts, historical milestones and — from June 2017 onward — sales, streaming and airplay analysis.</p></div><a href="'+appHref('/chart-beat/weekly/'+latestDate)+'" data-portal-link="/chart-beat/weekly/'+latestDate+'">Read '+fmtDate(latestDate)+' →</a></section>':'';
 
+  const seoStories='<section class="mag-features"><div class="mag-section-head"><h2>Stories & Analysis</h2><a href="/stories/">All stories →</a></div><div class="mag-feature-list">'+
+    '<a href="/stories/ariana-grande-dominates-daegon-100-october-10-2026/" class="mag-feature-row"><div><div class="mag-kicker">Chart Beat Weekly</div><h3>Ariana Grande sweeps the Daegon 100 top three</h3><p>Three songs lead the Daegon 100 as petal tops albums and Grande returns to No. 1 on Artist 50.</p></div></a>'+
+    '<a href="/stories/how-to-read-daegon-charts/" class="mag-feature-row"><div><div class="mag-kicker">Chart Guide</div><h3>How to read LW, Peak, Weeks and Re-Entry</h3><p>A practical guide to the fields that turn each chart row into a history.</p></div></a>'+
+    '<a href="/stories/why-old-songs-return-to-charts/" class="mag-feature-row"><div><div class="mag-kicker">Archive Explained</div><h3>Why old songs return to music charts</h3><p>What a re-entry means and why catalog consumption can become current again.</p></div></a>'+
+  '</div></section>';
+
   const chartCards='<section class="mag-charts"><div class="mag-section-head"><h2>This Week’s Charts</h2><a href="'+appHref('/chart/daegon-100')+'">View Daegon 100 →</a></div><div class="mag-chart-grid">'+
     no1s.filter(x=>x.e).map(x=>'<article class="mag-chart-card">'+refThumb(x.e,charts[x.id].kind)+'<div class="mag-chart-copy"><div class="mag-kicker">'+esc(charts[x.id].title)+'</div><div class="mag-chart-rank">No. 1</div><h3>'+entityLink(x.e,charts[x.id].kind)+'</h3>'+(charts[x.id].kind!=='artist'?'<p>'+artistLink(x.e.artist)+'</p>':'')+'<a class="mag-chart-link" href="'+appHref(chartPath(x.id,x.date))+'">Full chart →</a></div></article>').join('')+
   '</div></section>';
 
-  let globalHome='';
-  try{
-    const sb=dcSupabaseClient();
-    if(sb){
-      const {data:gd}=await sb.from('daegon_global_chart').select('chart_date').order('chart_date',{ascending:false}).limit(1);
-      const gdate=gd?.[0]?.chart_date||'';
-      if(gdate){
-        const defs=[['songs','Songs'],['albums','Albums'],['artists','Artists']];
-        const groups=await Promise.all(defs.map(([type])=>sb.from('daegon_global_chart').select('*').eq('chart_date',gdate).eq('chart_type',type).order('total_points',{ascending:false}).limit(5)));
-        globalHome='<section class="mag-global-home"><div class="mag-section-head"><div><div class="mag-kicker">Community-powered</div><h2>Daegon Global</h2></div><a href="'+appHref('/global')+'" data-portal-link="/global">Full Global charts →</a></div><p class="mag-global-home-intro">The combined chart of public Daegon user rankings for '+fmtDate(gdate)+'. Position points are summed across users.</p><div class="mag-global-home-grid">'+defs.map(([type,label],i)=>'<article><h3>Global '+label+'</h3><ol>'+(groups[i].data||[]).map(x=>'<li><span><strong>'+esc(x.entity_name)+'</strong><small>'+esc(x.artist_name||'')+'</small></span><em>'+Number(x.total_points||0).toLocaleString(undefined,{maximumFractionDigits:2})+' units</em></li>').join('')+'</ol></article>').join('')+'</div></section>';
-      }
-    }
-  }catch(e){console.warn('Global home',e)}
-
+  const globalHome='';
 
   const archiveDates=(byId.songs.dates||[]).filter(d=>d<latestDate).slice(-4).reverse();
   const archive='<section class="mag-archive"><div class="mag-section-head"><h2>From the Archive</h2><a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat">Explore Chart Beat →</a></div><div class="mag-archive-grid">'+
@@ -1484,10 +1471,9 @@ async function renderHome(){
 
   const main='<main class="mag-home">'+
     '<div class="mag-brandline"><span>Music. Charts. Culture.</span><p>Independent music journalism powered by the Daegon Charts archive.</p></div>'+
-    hero+secondaryHtml+weeklyStory+chartCards+globalHome+
-    (globalHome?'':'<section class="mag-global-promo"><div><div class="mag-kicker">Powered by listeners</div><h2>Daegon Global</h2><p>Public personal charts combine into community-wide Songs, Albums and Artists rankings. One user, one weekly ballot — heavy streaming alone cannot dominate the chart.</p></div><a href="'+appHref('/global')+'" data-portal-link="/global">Explore Daegon Global →</a></section>')+
+    hero+secondaryHtml+weeklyStory+chartCards+seoStories+
     features+archive+
-    '<section class="mag-about-strip"><div><div class="mag-kicker">About Daegon</div><h2>Music journalism with its own chart archive.</h2><p>Daegon combines original weekly rankings, historical research and source-backed reporting to explain what is happening in music — and how today connects to the past.</p></div><div><a href="'+appHref('/methodology')+'">Methodology →</a><a href="'+appHref('/ai')+'" data-portal-link="/ai">How we use AI →</a><a href="'+appHref('/about')+'">About the project →</a></div></section>'+
+    '<section class="mag-about-strip"><div><div class="mag-kicker">About Daegon</div><h2>Music journalism with its own chart archive.</h2><p>Daegon combines original weekly rankings, historical research and source-backed reporting to explain what is happening in music — and how today connects to the past.</p></div><div><a href="'+appHref('/methodology')+'">Methodology →</a><a href="/editorial-policy">Editorial policy →</a><a href="'+appHref('/about')+'">About the project →</a></div></section>'+
   '</main>';
 
   setMode(true);portalEl.innerHTML=shellHtml(main);
@@ -3276,6 +3262,7 @@ async function renderRoute(){
   const skeleton=routeSkeletonMeta(p);
   loading(skeleton.title,skeleton.kind);
   try{
+    if(['community','forum','plans','global','u','my-daegon','my-charts','my-picks','my-history','my-lists','list','compare'].includes(p[0])){location.replace(appHref('/stories/'));return}
     if(!p.length){await renderHome()}
     else if(p[0]==='news')await renderEditorialIndex('news');
     else if(p[0]==='trending')await renderTrending();
@@ -3356,7 +3343,7 @@ function onDocumentClick(e){
 
 window.DaegonPortal={handles:isHandled,route:renderRoute,go,activateWeeklyIfNeeded};
 ensureShell();
-dcInitAuth();
+// SaaS/auth is paused; Supabase remains available for non-chart editorial services.
 try{
   const savedRoute=sessionStorage.getItem('dc_route');
   if(savedRoute){
