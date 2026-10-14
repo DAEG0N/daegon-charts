@@ -3474,13 +3474,14 @@ html.dark .sk{
     }
 
 
-/* Keep the original mobile layout; position action icons away from chart metrics. */
+/* Preserve the original Billboard-style mobile card geometry. Only reserve
+   the action column's space so long metric text cannot run underneath it. */
 @media(max-width:767px){
-  .chart-card .mobile-row{position:relative!important}
-  .chart-card .mobile-row .m-actions{position:absolute!important;right:0!important;top:0!important;bottom:0!important;width:42px!important;height:100%!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:space-between!important;z-index:2!important;pointer-events:none!important}
-  .chart-card .mobile-row .m-actions>*{pointer-events:auto!important}
-  .chart-card .mobile-row .m-entry{min-width:0!important}
-  .chart-card .mobile-row .m-metrics{padding-right:0!important}
+  .mobile-row .m-entry{min-width:0!important}
+  .mobile-row .m-metrics{max-width:100%!important;min-width:0!important;flex-wrap:wrap!important;white-space:normal!important}
+  .mobile-row .m-metrics span{max-width:100%!important;white-space:normal!important}
+  .mobile-row .m-weeks-no1{max-width:100%!important;white-space:normal!important}
+  .mobile-row .m-actions{position:static!important;z-index:auto!important;pointer-events:auto!important}
 }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
