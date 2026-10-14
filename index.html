@@ -3595,6 +3595,279 @@ html.dark .sk{
   }
 }
 </style>
+
+<style id="weekly-billboard-final-mobile-v51">
+@media(max-width:767px){
+  /* Final Billboard-style mobile chart item. Keep this block last. */
+  .chart-list{
+    gap:0!important;
+    background:var(--background)!important;
+  }
+  .chart-card{
+    margin:0!important;
+    border:0!important;
+    border-bottom:10px solid var(--background)!important;
+    background:var(--card)!important;
+    box-shadow:none!important;
+  }
+
+  .chart-card .mobile-row{
+    display:grid!important;
+    grid-template-columns:44px 96px minmax(0,1fr)!important;
+    gap:10px!important;
+    align-items:start!important;
+    position:relative!important;
+    padding:0!important;
+  }
+
+  .chart-card .m-rank{
+    width:44px!important;
+    min-width:44px!important;
+    height:96px!important;
+    padding:0!important;
+    margin:0!important;
+    align-self:start!important;
+    justify-content:center!important;
+    gap:12px!important;
+  }
+  .chart-card .m-rank-num{
+    font-family:"Post Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:33px!important;
+    line-height:.95!important;
+    font-weight:800!important;
+    letter-spacing:-.035em!important;
+  }
+
+  .chart-card .m-cover,
+  .chart-card .m-cover.one,
+  .chart-card .m-cover.weekly-artist-art{
+    width:96px!important;
+    height:96px!important;
+    min-width:96px!important;
+    flex:0 0 96px!important;
+    margin:0!important;
+    align-self:start!important;
+  }
+
+  .chart-card .m-entry{
+    min-width:0!important;
+    width:100%!important;
+    min-height:96px!important;
+    height:auto!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    align-self:start!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-auto-rows:auto!important;
+    column-gap:8px!important;
+    align-content:start!important;
+  }
+
+  .chart-card .m-title{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    max-height:35px!important;
+    margin:0!important;
+    padding:0!important;
+    font-family:"Post Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:16px!important;
+    line-height:1.06!important;
+    font-weight:700!important;
+    letter-spacing:-.012em!important;
+    color:var(--foreground)!important;
+    white-space:normal!important;
+    display:-webkit-box!important;
+    -webkit-line-clamp:2!important;
+    -webkit-box-orient:vertical!important;
+    overflow:hidden!important;
+  }
+
+  .chart-card .m-artist{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:13px!important;
+    line-height:1.08!important;
+    font-weight:400!important;
+    letter-spacing:0!important;
+    color:var(--foreground)!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .chart-card .m-album-ref{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    margin:2px 0 0!important;
+    padding:0!important;
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:11px!important;
+    line-height:1.08!important;
+    font-weight:400!important;
+    font-style:italic!important;
+    letter-spacing:0!important;
+    color:#7f7f7f!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+
+  .chart-card .m-metrics{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:7px 0 0!important;
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    align-items:baseline!important;
+    gap:7px!important;
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:10px!important;
+    line-height:1.1!important;
+    font-weight:400!important;
+    letter-spacing:-.005em!important;
+    color:var(--foreground)!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+  }
+  .chart-card .m-metrics span{
+    flex:0 0 auto!important;
+    max-width:none!important;
+    white-space:nowrap!important;
+  }
+
+  .chart-card .m-weeks-no1{
+    grid-column:1!important;
+    grid-row:auto!important;
+    width:auto!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:3px 0 0!important;
+    padding:0!important;
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:10px!important;
+    line-height:1.1!important;
+    font-weight:400!important;
+    letter-spacing:-.005em!important;
+    color:var(--foreground)!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+  }
+
+  .chart-card .m-metrics b,
+  .chart-card .m-weeks-no1 b{
+    font-family:inherit!important;
+    font-weight:400!important;
+    color:#8d8d8d!important;
+  }
+
+  .chart-card .m-entry:not(:has(.m-weeks-no1))::after{display:none!important}
+
+  .chart-card .m-actions{
+    grid-column:2!important;
+    grid-row:auto!important;
+    position:static!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:auto!important;
+    height:auto!important;
+    min-width:0!important;
+    margin:3px 0 0!important;
+    align-self:end!important;
+    justify-self:end!important;
+    display:flex!important;
+    flex-direction:row!important;
+    align-items:center!important;
+    justify-content:flex-end!important;
+    gap:8px!important;
+    z-index:2!important;
+    pointer-events:auto!important;
+  }
+
+  .chart-card .m-actions .award-performance{
+    width:22px!important;
+    height:30px!important;
+    min-width:22px!important;
+    min-height:30px!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  .chart-card .m-actions .award-performance .award-star-svg{
+    width:18px!important;
+    height:18px!important;
+  }
+  .chart-card .m-actions .award-gainer,
+  .chart-card .m-actions .action{
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+    min-height:34px!important;
+    flex:0 0 34px!important;
+  }
+  .chart-card .m-actions .action{
+    aspect-ratio:1/1!important;
+    border:1px solid #8d8d8d!important;
+    border-radius:50%!important;
+    background:transparent!important;
+    color:#8d8d8d!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    padding:0!important;
+    font-family:Inter,"Helvetica Neue",Helvetica,Arial,sans-serif!important;
+    font-size:24px!important;
+    line-height:1!important;
+    font-weight:300!important;
+  }
+}
+@media(max-width:430px){
+  .chart-card{
+    min-height:0!important;
+    padding:10px 8px!important;
+    border-bottom-width:9px!important;
+  }
+  .chart-card .mobile-row{
+    grid-template-columns:38px 82px minmax(0,1fr)!important;
+    gap:8px!important;
+  }
+  .chart-card .m-rank{
+    width:38px!important;
+    min-width:38px!important;
+    height:82px!important;
+    gap:10px!important;
+  }
+  .chart-card .m-rank-num{font-size:31px!important}
+  .chart-card .m-cover,
+  .chart-card .m-cover.one,
+  .chart-card .m-cover.weekly-artist-art{
+    width:82px!important;height:82px!important;min-width:82px!important;flex-basis:82px!important
+  }
+  .chart-card .m-entry{min-height:82px!important;column-gap:7px!important}
+  .chart-card .m-title{font-size:15px!important;line-height:1.05!important;max-height:32px!important}
+  .chart-card .m-artist{font-size:12.5px!important;line-height:1.06!important}
+  .chart-card .m-album-ref{font-size:10.5px!important;margin-top:2px!important}
+  .chart-card .m-metrics{font-size:10px!important;gap:6px!important;margin-top:6px!important}
+  .chart-card .m-weeks-no1{font-size:10px!important;margin-top:3px!important}
+  .chart-card .m-actions{gap:7px!important;margin-top:2px!important}
+  .chart-card .m-actions .award-gainer,
+  .chart-card .m-actions .action{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;flex-basis:32px!important}
+}
+</style>
 </head>
 <body>
 <div class="shell">
