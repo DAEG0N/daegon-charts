@@ -3693,6 +3693,50 @@ html.dark .sk{
   }
 }
 </style>
+
+<style id="weekly-mobile-metrics-one-line-v56">
+@media(max-width:767px){
+  /* LW + PEAK + WEEKS ON CHART stay on ONE line.
+     Only WEEKS AT NO. 1 goes to the line below. */
+  .chart-card .m-metrics{
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:baseline!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+  }
+  .chart-card .m-metrics span{
+    flex:0 0 auto!important;
+    white-space:nowrap!important;
+    max-width:none!important;
+  }
+  .chart-card .m-weeks-no1{
+    display:block!important;
+    width:calc(100% - 76px)!important;
+    max-width:calc(100% - 76px)!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+  }
+}
+@media(max-width:430px){
+  .chart-card .m-metrics{
+    gap:6px!important;
+    font-size:11.5px!important;
+    letter-spacing:-.01em!important;
+  }
+  .chart-card .m-weeks-no1{
+    width:calc(100% - 66px)!important;
+    max-width:calc(100% - 66px)!important;
+    font-size:11.5px!important;
+  }
+}
+</style>
 </head>
 <body>
 <div class="shell">
