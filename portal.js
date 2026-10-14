@@ -921,9 +921,9 @@ function ensureShell(){
     navEl.id='portalTopNav';
     navEl.className='portal-topnav';
     navEl.innerHTML=[
-      ['NEWS','/news'],['CHART BEAT','/chart-beat'],['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],
-      ['YEC','/year-end'],['DECADE-END','/decade-end'],['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],
-      ['METHODOLOGY','/methodology'],['ABOUT','/about']
+      ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
+      ['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
+      ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
       : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
@@ -946,9 +946,9 @@ function ensureShell(){
     mobileMenu.id='portalMobileMenu';
     mobileMenu.className='portal-mobile-drawer';
     mobileMenu.innerHTML=[
-      ['NEWS','/news'],['CHART BEAT','/chart-beat'],['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],
-      ['YEC','/year-end'],['DECADE-END','/decade-end'],['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],
-      ['METHODOLOGY','/methodology'],['ABOUT','/about']
+      ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
+      ['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
+      ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
       : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
@@ -1107,6 +1107,11 @@ function sideHtml(){
     '<div class="ref-side-section"><div class="ref-side-title">Weekly Charts</div><div class="ref-side-links">'+
       ['songs','albums','artists','radioSongs','topStreamingAlbums','topAlbumSales','streamingSongs','digitalSongsSales'].map(id=>'<a href="'+appHref(chartPath(id))+'">'+esc(charts[id].title)+'</a>').join('')+
     '</div></div>'+
+    '<div class="ref-side-section"><div class="ref-side-title">Catalog</div><div class="ref-side-links">'+
+      '<a href="'+appHref('/songs')+'" data-portal-link="/songs">Songs</a>'+
+      '<a href="'+appHref('/albums')+'" data-portal-link="/albums">Albums</a>'+
+      '<a href="'+appHref('/artists')+'" data-portal-link="/artists">Artists</a>'+
+    '</div></div>'+
     '<div class="ref-side-section"><button class="ref-side-toggle" data-side-toggle="goat"><span>Greatest of All Time</span><i class="fas fa-chevron-down"></i></button><div class="ref-side-links ref-side-collapsible" data-side-panel="goat">'+
       '<a href="'+appHref('/goat/songs')+'" data-portal-link="/goat/songs">Songs</a><a href="'+appHref('/goat/artists')+'" data-portal-link="/goat/artists">Artists</a><a href="'+appHref('/goat/albums')+'" data-portal-link="/goat/albums">Albums</a>'+
     '</div></div>'+
@@ -1118,6 +1123,8 @@ function sideHtml(){
     '</div></div>'+
     '<a href="'+appHref('/number-ones')+'" data-portal-link="/number-ones" class="ref-side-section ref-side-stat"><div class="ref-side-title">Number Ones</div></a>'+
     '<a href="'+appHref('/stats')+'" data-portal-link="/stats" class="ref-side-section ref-side-stat"><div class="ref-side-title">Stats</div></a>'+
+    '<a href="'+appHref('/awards')+'" data-portal-link="/awards" class="ref-side-section ref-side-stat"><div class="ref-side-title">Awards</div></a>'+
+    '<a href="'+appHref('/chart-battle')+'" data-portal-link="/chart-battle" class="ref-side-section ref-side-stat"><div class="ref-side-title">Chart Battle</div></a>'+
     '<div id="refOnThisWeek"></div>'+
   '</aside>';
 }
