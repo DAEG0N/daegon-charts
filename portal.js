@@ -2144,7 +2144,8 @@ async function renderDecadeIndex(){
   const ids=['songs','albums','artists'],data=await Promise.all(ids.map(loadWeekly));
   const years=[...new Set(data.flatMap(d=>d.dates.map(x=>Number(x.slice(0,4)))))].sort((a,b)=>b-a);
   const decades=[...new Set(years.map(y=>Math.floor(y/10)*10))].sort((a,b)=>b-a).map(x=>String(x));
-  let selected=new URLSearchParams(location.search).get('decade')||decades[0]||'2000';
+  let selected=new URLSearchParams(location.search).get('decade')||decades[0]||'2020';
+  if(!decades.includes(String(selected)))selected=decades[0]||'2020';
   const aggregate=(d,id)=>aggregateDecadePeriod(d,id,x=>Number(x.slice(0,4))>=Number(selected)&&Number(x.slice(0,4))<Number(selected)+10).slice(0,5).map((x,i)=>({...x,position:i+1}));
   const draw=()=>{
     const main='<div class="orig-page">'+originalHero('DECADE-END CHARTS','Decade-End Charts','The definitive decade-end rankings across every chart')+
@@ -2193,8 +2194,8 @@ async function renderGoatIndex(){
     editorialBlock(
       'What Greatest of All Time means here',
       [
-        'The GOAT pages normalize every weekly chart from 2000 onward to the historical 2000–2009 scale, so later consumption-based eras do not receive an artificial numerical advantage.',
-        'Chart Performance uses that common historical scale across every week: Songs run from 100 points at No. 1 to 1 point at No. 100, while Albums and Artists use the original 2000–2009 curved 50-position scale. Weeks on Chart is available as a separate longevity view.'
+        'The GOAT pages normalize the currently published weekly charts to a consistent historical comparison scale.',
+        'Chart Performance uses a consistent comparison scale across the published weeks: Songs run from 100 points at No. 1 to 1 point at No. 100, while Albums and Artists use a curved 50-position scale. Weeks on Chart is available as a separate longevity view.'
       ],
       [['/methodology','How chart metrics are calculated'],['/number-ones','Browse every No. 1']]
     )+
@@ -2439,7 +2440,7 @@ async function renderDecadeDetailExact(chartSeg){
   const data=await loadWeekly(weeklyId);
   const years=[...new Set(data.dates.map(d=>Number(d.slice(0,4))))].sort((a,b)=>b-a);
   const decades=[...new Set(years.map(y=>Math.floor(y/10)*10))].sort((a,b)=>b-a).map(String);
-  let selected=String(new URLSearchParams(location.search).get('decade')||decades[0]||'2000');
+  let selected=String(new URLSearchParams(location.search).get('decade')||decades[0]||'2020');
   if(!decades.includes(selected))selected=decades[0]||selected;
 
   const path='/decade-end/'+chartSeg;
@@ -3225,8 +3226,8 @@ async function renderBattle(){
 
 async function renderSearch(){
   loading('Search');
-  const main='<div class="portal-hero"><div class="portal-kicker">Archive search</div><h1 class="portal-title">Search</h1><p class="portal-subtitle">Search songs, albums and artists across the complete archive.</p></div><div class="portal-toolbar"><input id="globalSearch" class="portal-input" placeholder="Type a song, album or artist…" autofocus></div><div id="searchRows" class="portal-empty">Start typing to search.</div>';
-  setMode(true);portalEl.innerHTML=shellHtml(main);setMeta('Search','Search the Daegon Charts archive.','/search');
+  const main='<div class="portal-hero"><div class="portal-kicker">Archive search</div><h1 class="portal-title">Search</h1><p class="portal-subtitle">Search songs, albums and artists across the currently published charts.</p></div><div class="portal-toolbar"><input id="globalSearch" class="portal-input" placeholder="Type a song, album or artist…" autofocus></div><div id="searchRows" class="portal-empty">Start typing to search.</div>';
+  setMode(true);portalEl.innerHTML=shellHtml(main);setMeta('Search','Search the published Daegon Charts.','/search');
 
   const inp=document.getElementById('globalSearch'),rows=document.getElementById('searchRows');
   let all=null,loadingPromise=null,timer=null;
