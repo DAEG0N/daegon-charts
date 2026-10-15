@@ -4131,8 +4131,8 @@ async function loadWeekly(chartId){
   }
   computeDiffs(dates,entriesByDate);
   // Temporary publication embargo: preserve the Supabase/Sheets archive intact.
-  // Apply only after historic calculations so 2017+ metrics remain consistent.
-  const PUBLIC_CHART_START='2017-01-01';
+  // Apply only after historic calculations so published-era metrics remain consistent.
+  const PUBLIC_CHART_START='2017-06-24';
   const publicDates=dates.filter(d=>d>=PUBLIC_CHART_START);
   const publicEntriesByDate=Object.fromEntries(publicDates.map(d=>[d,entriesByDate[d]]));
   // The movement badge, peak, weeks and Chart Run must use the SAME public timeline.
@@ -4156,7 +4156,7 @@ async function loadWeekly(chartId){
   state.cache.set(chartId,data);return data;
 }
 
-function visibleCharts(date){return date&&date<'2017-01-01'?['songs','artists','albums']:weeklyIds}
+function visibleCharts(date){return date&&date<'2017-06-24'?['songs','artists','albums']:weeklyIds}
 function renderNav(){
   const ids=visibleCharts(state.date);
 
