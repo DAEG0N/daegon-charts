@@ -922,7 +922,7 @@ function ensureShell(){
     navEl.className='portal-topnav';
     navEl.innerHTML=[
       ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
-      ['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
+      ['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
       ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
@@ -947,7 +947,7 @@ function ensureShell(){
     mobileMenu.className='portal-mobile-drawer';
     mobileMenu.innerHTML=[
       ['NEWS','/news'],['TRENDING','/trending'],['CHART BEAT','/chart-beat'],['FEATURES','/features'],['REVIEWS','/reviews'],
-      ['STORIES','/stories/'],['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
+      ['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
       ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
