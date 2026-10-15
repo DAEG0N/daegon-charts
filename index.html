@@ -4135,6 +4135,23 @@ async function loadWeekly(chartId){
   const PUBLIC_CHART_START='2017-01-01';
   const publicDates=dates.filter(d=>d>=PUBLIC_CHART_START);
   const publicEntriesByDate=Object.fromEntries(publicDates.map(d=>[d,entriesByDate[d]]));
+  // The movement badge, peak, weeks and Chart Run must use the SAME public timeline.
+  // Never expose pre-2017 weeks through carried-over historical metadata.
+  const seenPublic=new Map();
+  for(const d of publicDates){
+    for(const e of publicEntriesByDate[d]||[]){
+      const key=itemKey(e);
+      const prior=seenPublic.get(key)||{weeks:0,peak:Infinity,weeksAt1:0};
+      prior.weeks++;
+      prior.peak=Math.min(prior.peak,Number(e.position)||999);
+      if(Number(e.position)===1)prior.weeksAt1++;
+      e.weeks=prior.weeks;
+      e.peak=prior.peak;
+      e.weeksAt1=prior.weeksAt1;
+      seenPublic.set(key,prior);
+    }
+  }
+  computeDiffs(publicDates,publicEntriesByDate);
   const data={chartId,title:cfg.title,kind:cfg.kind,dates:publicDates,entriesByDate:publicEntriesByDate};
   state.cache.set(chartId,data);return data;
 }
