@@ -300,6 +300,28 @@
       display:flex;align-items:center;justify-content:center;gap:10px;
       cursor:pointer;
     }
+    /* Keep the week selector readable in dark mode (desktop and mobile). */
+    html.dark .week-picker-button{
+      background:#242424 !important;
+      color:#f7f7f7 !important;
+      border-color:#4b4b4b !important;
+    }
+    html.dark .week-picker-button #weekPickerLabel,
+    html.dark .week-picker-button i{color:#f7f7f7 !important;opacity:1}
+    html.dark .week-picker-menu{
+      background:#242424 !important;
+      border-color:#4b4b4b !important;
+    }
+    html.dark .week-picker-option{
+      background:#242424 !important;
+      color:#f7f7f7 !important;
+      border-color:#414141 !important;
+    }
+    html.dark .week-picker-option:hover,
+    html.dark .week-picker-option.selected{
+      background:#393939 !important;
+      color:#fff !important;
+    }
     .week-picker-button:hover{border-color:var(--accent)}
     .week-picker-button i{font-size:11px;transition:transform .15s}
     .week-picker.open .week-picker-button i{transform:rotate(180deg)}
