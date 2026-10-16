@@ -1469,9 +1469,34 @@ async function renderHome(){
   const newcomer='<section class="dc-source-section"><div class="dc-source-banner"><strong>First-Timers</strong><a href="'+appHref('/chart/daegon-artists-50')+'">Artist 50 →</a></div>'+
     '<div class="dc-source-ones">'+firstTimers.map(e=>'<a class="dc-source-one" href="'+appHref(entityPath(e,'artist'))+'" data-portal-link="'+entityPath(e,'artist')+'">'+
       '<div class="dc-source-cover">'+refThumb(e,'artist')+'</div><div class="dc-source-one-text"><small>New on Artist 50</small><strong>'+esc(portalText(e.name))+'</strong><span>'+fmtDate(e.date)+'</span></div></a>').join('')+'</div></section>';
+  await loadPublishedChartBeatArticles();
+  const beatArticles=CHART_BEAT_ARTICLES.filter(a=>a&&(a.published||a.date||'')>='2017-06-24').slice(0,5);
+  const chartBeat='<section class="dc-source-section"><div class="dc-source-banner"><strong>Chart Beat</strong><a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat">View All →</a></div>'+
+    '<div class="dc-source-beat">'+beatArticles.map(a=>{
+      const href='/chart-beat/'+a.slug,media=a.media?.primary||{};
+      return '<a class="dc-source-beat-card" href="'+appHref(href)+'" data-portal-link="'+href+'">'+
+        '<div class="dc-source-beat-image" data-portal-image data-kind="'+escAttr(media.kind||'artist')+'" data-name="'+escAttr(media.name||a.headline)+'" data-artist="'+escAttr(media.artist||media.name||'')+'"></div>'+
+        '<div class="dc-source-beat-copy"><small>'+esc(a.category||'Chart Beat')+'</small><strong>'+esc(a.headline)+'</strong><span>'+fmtDate(a.published||a.date)+'</span></div></a>';
+    }).join('')+'</div></section>';
+  const songDates=datasets.songs.dates||[];
+  const currentWeek=latest('songs').date;
+  const onWeekYears=[...new Set(songDates.map(d=>d.slice(0,4)))].reverse();
+  const onThisWeek=(year)=>{
+    const targetDay=currentWeek?currentWeek.slice(5):'06-24';
+    const match=songDates.filter(d=>d.startsWith(year)).sort((a,b)=>Math.abs(new Date(a)-new Date(year+'-'+targetDay))-Math.abs(new Date(b)-new Date(year+'-'+targetDay)))[0];
+    if(!match)return '<p>No chart for this year.</p>';
+    return mainIds.map(id=>{
+      const dates=datasets[id].dates.filter(d=>d.startsWith(year));
+      const date=dates.sort((a,b)=>Math.abs(new Date(a)-new Date(match))-Math.abs(new Date(b)-new Date(match)))[0];
+      const e=date?(datasets[id].entriesByDate[date]||[])[0]:null;
+      if(!e)return '';
+      return '<a class="dc-week-result" href="'+appHref(chartPath(id,date))+'"><strong>'+esc(charts[id].title)+'</strong><span>'+esc(portalText(e.name))+'</span><small>'+esc(portalArtist(e.artist||''))+'</small></a>';
+    }).join('');
+  };
+  const weekSide='<section class="dc-source-week"><h3>On This Week</h3><div class="dc-source-years">'+onWeekYears.map((y,i)=>'<button data-dc-year="'+y+'" class="'+(i===0?'active':'')+'">'+y+'</button>').join('')+'</div><div id="dcSourceWeekResults">'+onThisWeek(onWeekYears[0]||'')+'</div></section>';
   const html='<main class="dc-source-home">'+
     '<header class="dc-source-hero"><span aria-hidden="true">CHARTS</span><h1>daegon charts</h1><p>Weekly music charts, year-end rankings &amp; greatest of all time lists</p></header>'+
-    '<div class="dc-source-layout"><div class="dc-source-side">'+sideHtml()+'</div><div class="dc-source-content">'+topTabs+no1Cards+newcomer+
+    '<div class="dc-source-layout"><div class="dc-source-side">'+sideHtml()+weekSide+'</div><div class="dc-source-content">'+topTabs+no1Cards+newcomer+chartBeat+
     '<section class="dc-source-section"><div class="dc-source-banner"><strong>Chart History</strong></div><div class="dc-source-links">'+
     [['/year-end','Year-End'],['/decade-end','Decade-End'],['/goat','GOAT'],['/stats','Statistics']].map(([url,name])=>'<a href="'+appHref(url)+'" data-portal-link="'+url+'">'+name+' →</a>').join('')+
     '</div></section></div></div></main>';
@@ -1479,6 +1504,7 @@ async function renderHome(){
   setMeta('Daegon Charts — Weekly Music Charts','Weekly music charts, year-end rankings and greatest of all time lists.','/',true);
   bindLinks();bindHomeSidebar();hydratePortalImages();
   const grid=document.getElementById('dcSourceTopGrid'),view=document.getElementById('dcTopViewLink');
+  portalEl.querySelectorAll('[data-dc-year]').forEach(btn=>btn.onclick=()=>{portalEl.querySelectorAll('[data-dc-year]').forEach(b=>b.classList.toggle('active',b===btn));document.getElementById('dcSourceWeekResults').innerHTML=onThisWeek(btn.dataset.dcYear)});
   portalEl.querySelectorAll('[data-dc-main-tab]').forEach(btn=>btn.onclick=()=>{
     const id=btn.dataset.dcMainTab;
     portalEl.querySelectorAll('[data-dc-main-tab]').forEach(b=>b.classList.toggle('active',b===btn));
