@@ -5263,3 +5263,58 @@ body.global-bars-weekly .theme-btn:hover{
 .dc-source-links{display:flex;flex-wrap:wrap;gap:12px}.dc-source-links a{background:var(--card);color:var(--foreground);border:1px solid var(--border);padding:14px 20px;text-decoration:none;font-weight:800;border-radius:8px}
 @media(max-width:1000px){.dc-source-layout{grid-template-columns:220px minmax(0,1fr);gap:22px}.dc-source-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.dc-source-ones{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.dc-source-hero{padding:26px 0 40px}.dc-source-layout{grid-template-columns:minmax(0,1fr)}.dc-source-side>.ref-home-side{position:static}.dc-source-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dc-source-ones{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.dc-source-home{padding:10px 12px 45px}.dc-source-banner{margin-bottom:15px}}
+
+
+/* Canonical fixed global header from DAEG0N/daegoncharts */
+html body .site-header{
+  position:fixed !important;top:0 !important;left:0 !important;right:0 !important;
+  z-index:1000 !important;width:100% !important;
+  background:linear-gradient(to bottom,#0f0f0f,#161616) !important;
+  border-bottom:1px solid #2a2a2a !important;
+  box-shadow:none !important;
+}
+html body .site-header .header-inner{
+  position:relative !important;max-width:1280px !important;margin:auto !important;
+  min-height:62px !important;display:flex !important;align-items:center !important;
+  justify-content:space-between !important;gap:18px !important;
+  padding:10px 16px !important;background:transparent !important;
+}
+html body .site-header .brand{flex-shrink:0 !important;color:#f5f5f5 !important;letter-spacing:.025em !important;text-transform:lowercase !important;font-size:20px !important;font-weight:850 !important}
+html body .site-header .brand-mark{display:none !important}
+html body .site-header .brand-word{color:#f5f5f5 !important}
+html body .site-header .weekly-label{display:none !important}
+html body .site-header .dc-original-nav{
+  position:static !important;display:flex !important;flex:1 1 auto !important;
+  align-items:center !important;justify-content:center !important;
+  flex-wrap:nowrap !important;gap:clamp(5px,.8vw,12px) !important;
+  width:auto !important;min-width:0 !important;margin:0 !important;
+  padding:0 !important;background:transparent !important;border:0 !important;
+}
+html body .site-header .dc-original-nav a{
+  color:#9ca3af !important;font-size:10px !important;font-weight:750 !important;
+  letter-spacing:.06em !important;white-space:nowrap !important;text-decoration:none !important;
+  background:transparent !important;border:0 !important;padding:5px 0 !important;
+}
+html body .site-header .dc-original-nav a:hover{color:#f5f5f5 !important}
+html body .site-header #portalHeaderActions{flex-shrink:0 !important}
+html body>.page{padding-top:84px !important}
+html body .site-header #portalMenuToggle{display:none !important}
+@media(max-width:1100px){
+  html body .site-header .dc-original-nav{display:none !important}
+  html body .site-header #portalMenuToggle{display:flex !important;color:#f5f5f5 !important}
+  html body .site-header .header-inner{min-height:66px !important;justify-content:space-between !important}
+  html body .site-header .brand{position:absolute !important;left:50% !important;transform:translateX(-50%) !important;margin:0 !important;font-size:18px !important}
+  html body .site-header #portalSearchBtn{display:none !important}
+  html body .site-header .dc-original-mobile-nav{
+    position:absolute !important;top:100% !important;left:0 !important;right:0 !important;
+    max-height:calc(100dvh - 66px) !important;overflow-y:auto !important;
+    background:#0f0f0f !important;border-top:1px solid #2a2a2a !important;
+    padding:12px 20px !important;z-index:1001 !important;
+  }
+  html body .site-header .dc-original-mobile-nav a{
+    display:block !important;color:#9ca3af !important;font-size:14px !important;
+    font-weight:800 !important;text-transform:uppercase !important;
+    padding:13px 5px !important;border-bottom:1px solid #2a2a2a !important;
+  }
+  html body>.page{padding-top:86px !important}
+}
