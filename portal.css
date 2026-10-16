@@ -5318,3 +5318,25 @@ html body .site-header #portalMenuToggle{display:none !important}
   }
   html body>.page{padding-top:86px !important}
 }
+
+
+/* Original daegoncharts: Chart Beat rows and On This Week sidebar */
+.dc-source-beat{display:flex;flex-direction:column;gap:16px}
+.dc-source-beat-card{display:flex;align-items:stretch;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;text-decoration:none;color:var(--foreground);min-height:105px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.dc-source-beat-card:hover{border-color:var(--accent)}
+.dc-source-beat-image{width:128px;min-width:128px;position:relative;background:var(--muted);overflow:hidden}
+.dc-source-beat-image img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}
+.dc-source-beat-copy{padding:16px;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.dc-source-beat-copy small{font-size:10px;text-transform:uppercase;font-weight:800;letter-spacing:.08em;color:var(--muted-foreground)}
+.dc-source-beat-copy strong{font-size:15px;line-height:1.35;margin:5px 0;overflow-wrap:anywhere}
+.dc-source-beat-copy span{font-size:11px;color:var(--muted-foreground)}
+.dc-source-week{margin-top:17px;background:var(--card);border:1px solid var(--border);padding:16px}
+.dc-source-week h3{font-size:12px;letter-spacing:.09em;text-transform:uppercase;margin:0 0 12px}
+.dc-source-years{display:flex;gap:5px;overflow-x:auto;padding-bottom:10px}
+.dc-source-years button{flex-shrink:0;background:var(--muted);color:var(--muted-foreground);border:0;padding:8px 10px;border-radius:8px;font-size:11px;font-weight:750;cursor:pointer}
+.dc-source-years button.active{background:var(--accent);color:#000}
+.dc-week-result{display:flex;flex-direction:column;text-decoration:none;color:var(--foreground);padding:10px 0;border-top:1px solid var(--border);gap:2px}
+.dc-week-result strong{font-size:10px;text-transform:uppercase;color:var(--muted-foreground)}
+.dc-week-result span{font-size:13px;font-weight:800}
+.dc-week-result small{color:var(--muted-foreground);font-size:11px}
+@media(max-width:700px){.dc-source-beat-image{width:85px;min-width:85px}.dc-source-beat-copy{padding:12px}.dc-source-beat-copy strong{font-size:13px}}
