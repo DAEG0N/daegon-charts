@@ -919,10 +919,11 @@ function ensureShell(){
   if(head&&!document.getElementById('portalTopNav')){
     navEl=document.createElement('nav');
     navEl.id='portalTopNav';
-    navEl.className='portal-topnav';
+    navEl.className='portal-topnav dc-original-nav';
     navEl.innerHTML=[
-      ['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
-      ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
+      ['HOT 100','/chart/daegon-100'],['CHART BEAT','/chart-beat'],['YEAR-END CHARTS','/year-end'],
+      ['DECADE-END','/decade-end'],['GREATEST OF ALL TIME','/goat'],['STATS','/stats'],
+      ['AWARDS','/awards'],["#1'S",'/number-ones'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
       : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
@@ -943,10 +944,11 @@ function ensureShell(){
     mobileBtn.innerHTML='<span class="portal-hamb"><span></span><span></span><span></span></span>';
     const mobileMenu=document.createElement('div');
     mobileMenu.id='portalMobileMenu';
-    mobileMenu.className='portal-mobile-drawer';
+    mobileMenu.className='portal-mobile-drawer dc-original-mobile-nav';
     mobileMenu.innerHTML=[
-      ['CHARTS','/chart/daegon-100'],['YEC','/year-end'],['DECADE-END','/decade-end'],
-      ['GOAT','/goat'],["#1'S",'/number-ones'],['STATS','/stats'],['METHODOLOGY','/methodology'],['ABOUT','/about']
+      ['HOT 100','/chart/daegon-100'],['CHART BEAT','/chart-beat'],['YEAR-END CHARTS','/year-end'],
+      ['DECADE-END','/decade-end'],['GREATEST OF ALL TIME','/goat'],['STATS','/stats'],
+      ['AWARDS','/awards'],["#1'S",'/number-ones'],['ABOUT','/about']
     ].map(([l,p])=>p.startsWith('/stories')||p==='/methodology'||p==='/about'
       ? '<a href="'+appHref(p)+'">'+l+'</a>'
       : '<a href="'+appHref(p)+'" data-portal-link="'+p+'">'+l+'</a>').join('');
