@@ -809,10 +809,21 @@ async function renderItemDetailExact(kind,slug,found){
   const metric=(...keys)=>{for(const k of keys){const v=latest?.[k];if(v!==undefined&&v!==null&&String(v).trim()!=='')return fmtNum(metricNumber(v))}return null};
   // Mirror daegoncharts/src/lib/charts.functions.ts: sales and streams are
   // cumulative weekly figures from their dedicated component charts.
+  // As in the original daegoncharts: streaming figures in the sheet are
+  // stored in thousands, so 1,000 => 1M and 1,000,000 => 1B.
+  const formatDetailMetric=(value,chartId)=>{
+    if(value<=0)return null;
+    if(chartId==='streamingSongs'||chartId==='topStreamingAlbums'||chartId==='radioSongs'){
+      if(value>=1000000)return (value/1000000).toFixed(1).replace(/\\.0$/,'')+'B';
+      if(value>=1000)return Math.round(value/1000)+'M';
+      return String(value);
+    }
+    return fmtNum(value);
+  };
   const cumulativeMetric=(chartId,field)=>{
     const runs=grids.find(g=>g.id===chartId)?.runs||[];
     const total=runs.reduce((sum,e)=>sum+metricNumber(e[field]),0);
-    return total>0?fmtNum(total):null;
+    return formatDetailMetric(total,chartId);
   };
   const detailSales=kind==='song'
     ?cumulativeMetric('digitalSongsSales','sales')
