@@ -385,6 +385,8 @@ function creditBaseTitle(v){
     .replace(/\s+/g,' ').trim();
 }
 async function loadAppleArtistCreditCatalog(artist){
+  // Temporarily disable public Supabase enrichment while archive is suspended.
+  if(typeof PUBLIC_HISTORICAL_SUPABASE_ENABLED!=='undefined'&&!PUBLIC_HISTORICAL_SUPABASE_ENABLED)return [];
   const key=creditNorm(artist);
   if(appleArtistCreditCatalogCache.has(key))return appleArtistCreditCatalogCache.get(key);
   const job=(async()=>{
