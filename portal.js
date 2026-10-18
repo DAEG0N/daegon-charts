@@ -814,7 +814,7 @@ async function renderItemDetailExact(kind,slug,found){
   const formatDetailMetric=(value,chartId)=>{
     if(value<=0)return null;
     if(chartId==='streamingSongs'||chartId==='topStreamingAlbums'||chartId==='radioSongs'){
-      if(value>=1000000)return (value/1000000).toFixed(1).replace(/\\.0$/,'')+'B';
+      if(value>=1000000)return (value/1000000).toFixed(1).replace(/\.0$/,'')+'B';
       if(value>=1000)return Math.round(value/1000)+'M';
       return String(value);
     }
