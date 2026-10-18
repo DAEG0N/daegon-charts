@@ -807,15 +807,28 @@ async function renderItemDetailExact(kind,slug,found){
   const weeks=allRuns.length;
   const latest=allRuns[allRuns.length-1]||found;
   const metric=(...keys)=>{for(const k of keys){const v=latest?.[k];if(v!==undefined&&v!==null&&String(v).trim()!=='')return fmtNum(metricNumber(v))}return null};
+  // Mirror daegoncharts/src/lib/charts.functions.ts: sales and streams are
+  // cumulative weekly figures from their dedicated component charts.
+  const cumulativeMetric=(chartId,field)=>{
+    const runs=grids.find(g=>g.id===chartId)?.runs||[];
+    const total=runs.reduce((sum,e)=>sum+metricNumber(e[field]),0);
+    return total>0?fmtNum(total):null;
+  };
+  const detailSales=kind==='song'
+    ?cumulativeMetric('digitalSongsSales','sales')
+    :cumulativeMetric('topAlbumSales','sales');
+  const detailStreams=kind==='song'
+    ?cumulativeMetric('streamingSongs','streams')
+    :cumulativeMetric('topStreamingAlbums','streams');
   const back=kind==='song'?'/chart/daegon-100':'/chart/daegon-albums-100';
   const backLabel=kind==='song'?'Back to Hot 100':'Back to Albums';
   const art='<div class="orig-detail-cover" data-portal-image data-kind="'+kind+'" data-name="'+escAttr(found.name)+'" data-artist="'+escAttr(found.artist||found.name)+'"><i class="fas '+iconFor(kind)+'"></i></div>';
   let stats=detailStat('Peak','#'+peak)+detailStat('Weeks',weeks);
   if(kind==='song'){
-    const points=metric('totalPoints','points'),units=metric('totalUnits','units'),sales=metric('totalSales','sales'),streams=metric('totalStreams','streams'),aud=metric('totalAudience','audience');
+    const points=metric('totalPoints','points'),units=metric('totalUnits','units'),sales=detailSales,streams=detailStreams,aud=metric('totalAudience','audience');
     if(points)stats+=detailStat('Points',points); if(units)stats+=detailStat('Total Units',units); if(sales)stats+=detailStat('Sales',sales); if(streams)stats+=detailStat('Streams',streams); if(aud)stats+=detailStat('Audience',aud);
   }else{
-    stats+=detailStat('Total Units',metric('totalUnits','units')||'—')+detailStat('Sales',metric('totalSales','sales')||'—')+detailStat('Streams',metric('totalStreams','streams')||'—');
+    stats+=detailStat('Total Units',metric('totalUnits','units')||'—')+detailStat('Sales',detailSales||'—')+detailStat('Streams',detailStreams||'—');
   }
   const main='<div class="orig-detail-page">'+
     '<a class="orig-detail-back" href="'+appHref(back)+'"><i class="fas fa-arrow-left"></i> '+backLabel+'</a>'+
