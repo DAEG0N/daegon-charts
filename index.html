@@ -3548,6 +3548,9 @@ const charts={
   digitalSongsSales:{id:'digitalSongsSales',title:'Digital Songs Sales',kind:'song',url:SHEET+'302176914'}
 };
 const SITE_ORIGIN='https://daegoncharts.com.br';
+// Temporary public archive suspension: keep historical Supabase data untouched.
+const PUBLIC_CHART_START='2017-06-24';
+const PUBLIC_HISTORICAL_SUPABASE_ENABLED=false;
 const chartSlugs={
   songs:'daegon-100',
   albums:'daegon-albums-100',
@@ -3758,11 +3761,9 @@ async function loadWeekly(chartId){
   if(state.cache.has(chartId))return state.cache.get(chartId);
   const cfg=charts[chartId];
   const primaryPromise=fetchRows(cfg.url);
-  const secondaryPromise=cfg.secondaryUrl
-    ? loadSecondaryFromSupabase(chartId).catch(async()=>{
-        const rows=await fetchRows(cfg.secondaryUrl).catch(()=>null);
-        return rows?parseSheet(rows,cfg):null;
-      })
+  // Do not query Supabase or the historical Google Sheets fallback while hidden.
+  const secondaryPromise=PUBLIC_HISTORICAL_SUPABASE_ENABLED && cfg.secondaryUrl
+    ? loadSecondaryFromSupabase(chartId).catch(()=>null)
     : Promise.resolve(null);
   const [primaryRows,secondaryEntries]=await Promise.all([primaryPromise,secondaryPromise]);
   const entriesByDate=parseSheet(primaryRows,cfg);
@@ -3771,6 +3772,9 @@ async function loadWeekly(chartId){
       if(!Array.isArray(list))continue;
       (entriesByDate[d]??=[]).push(...list.map(e=>({...e})));
     }
+  }
+  for(const d of Object.keys(entriesByDate)){
+    if(d<PUBLIC_CHART_START)delete entriesByDate[d];
   }
   const dates=Object.keys(entriesByDate).sort();
   for(const d of dates){
@@ -3818,7 +3822,7 @@ async function loadWeekly(chartId){
   state.cache.set(chartId,data);return data;
 }
 
-function visibleCharts(date){return date&&date<'2017-01-01'?['songs','artists','albums']:weeklyIds}
+function visibleCharts(date){return weeklyIds}
 function renderNav(){
   const ids=visibleCharts(state.date);
 
