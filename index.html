@@ -4377,34 +4377,8 @@ const DISPLAY_CASE_EXCEPTIONS=new Map([
   ['3LW','3LW'],['2NE1','2NE1'],['4 NON BLONDES','4 Non Blondes']
 ]);
 const DISPLAY_SMALL_WORDS=new Set(['a','an','and','as','at','but','by','for','from','in','into','nor','of','on','or','the','to','vs','with']);
-function smartDisplayCase(value,{artist=false}={}){
-  const raw=String(value??'').trim();
-  if(!raw)return raw;
-  const exception=DISPLAY_CASE_EXCEPTIONS.get(raw.toUpperCase());
-  if(exception)return exception;
-  const letters=raw.match(/[A-Za-zÀ-ÖØ-öø-ÿ]/g)||[];
-  if(!letters.length)return raw;
-  const isAllCaps=letters.every(ch=>ch===ch.toUpperCase());
-  if(!isAllCaps)return raw;
-
-  const parts=raw.split(/(\s+)/);
-  let wordIndex=0;
-  const wordCount=parts.filter(p=>!/^\s+$/.test(p)).length;
-  return parts.map(part=>{
-    if(/^\s+$/.test(part))return part;
-    const tokenException=DISPLAY_CASE_EXCEPTIONS.get(part.toUpperCase());
-    if(tokenException){wordIndex++;return tokenException}
-    const idx=wordIndex++;
-    return part.split(/([\-\/])/).map(piece=>{
-      if(piece==='-'||piece==='/')return piece;
-      return piece.replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+(?:['’][A-Za-zÀ-ÖØ-öø-ÿ]+)*/g,word=>{
-        const lower=word.toLocaleLowerCase();
-        if(!artist&&idx>0&&idx<wordCount-1&&DISPLAY_SMALL_WORDS.has(lower))return lower;
-        return lower.replace(/(^|['’])[A-Za-zÀ-ÖØ-öø-ÿ]/g,m=>m.toLocaleUpperCase());
-      });
-    }).join('');
-  }).join('');
-}
+// Preserve the exact capitalization provided by the source spreadsheet.
+function smartDisplayCase(value,{artist=false}={}){return String(value??'')}
 function displayTitle(name){return smartDisplayCase(visibleChartTitle(name))}
 function displayArtist(name){return smartDisplayCase(name,{artist:true})}
 function visibleChartTitle(name){
@@ -4870,7 +4844,7 @@ async function generateTop10ChartImage(entries,cfg,date){
     const titleWrap=document.createElement('div');
     titleWrap.style.cssText='flex:1;min-width:0;text-align:left;position:relative;z-index:1';
     const title=document.createElement('div');
-    title.style.cssText='font-size:'+(no1?'30px':'25px')+';font-weight:900;color:#fff;line-height:1.04;letter-spacing:-.02em;text-align:left;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-transform:uppercase';
+    title.style.cssText='font-size:'+(no1?'30px':'25px')+';font-weight:900;color:#fff;line-height:1.04;letter-spacing:-.02em;text-align:left;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-transform:none';
     title.textContent=chartImageDisplayName(entry,cfg.kind);
     titleWrap.appendChild(title);row.appendChild(titleWrap);
 
