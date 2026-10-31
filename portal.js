@@ -548,8 +548,8 @@ function catalogEditorial(kind){
 
 async function renderHome(){
   loading('Home');
-  // Match the real daegoncharts home loader: only the three primary charts are blocking.
-  const ids=['songs','albums','artists'];
+  // Load all eight official weekly charts for the No. 1 This Week section.
+  const ids=['songs','albums','artists','radioSongs','topStreamingAlbums','topAlbumSales','streamingSongs','digitalSongsSales'];
   const all=await Promise.all(ids.map(async id=>{try{return await loadWeekly(id)}catch{return {chartId:id,dates:[],entriesByDate:{}}}}));
   const byId=Object.fromEntries(ids.map((id,i)=>[id,all[i]]));
   const mainIds=['songs','albums','artists'];
