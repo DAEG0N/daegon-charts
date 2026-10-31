@@ -4437,3 +4437,9 @@ body:not(.portal-mode) #portalPage{
     font-size:10px;
   }
 }
+
+/* Keep the moon icon white without changing the transparent toggle. */
+html body .site-header .theme-btn .fa-moon,
+html body .global-static-header .theme-btn .fa-moon{
+  color:#fff!important;
+}
