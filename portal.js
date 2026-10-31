@@ -1588,7 +1588,7 @@ async function aggregateDecadeArtists(sourceId,metricField,predicate,category){
 }
 
 async function renderDecadeDetailExact(chartSeg){
-  const baseMap={songs:'songs',albums:'albums'};
+  const baseMap={songs:'songs',albums:'albums',radio:'radioSongs','streaming-songs':'streamingSongs','digital-songs-sales':'digitalSongsSales','top-streaming-albums':'topStreamingAlbums','top-album-sales':'topAlbumSales'};
   const artistView=decadeArtistViews[chartSeg]||null;
   const weeklyId=artistView?.source||baseMap[chartSeg]||'songs';
   const data=await loadWeekly(weeklyId);
@@ -1603,6 +1603,11 @@ async function renderDecadeDetailExact(chartSeg){
   const navItems=[
     ['songs','Daegon 100'],
     ['albums','Top 100 Albums'],
+    ['radio','Radio Songs'],
+    ['streaming-songs','Streaming Songs'],
+    ['digital-songs-sales','Digital Songs Sales'],
+    ['top-streaming-albums','Top Streaming Albums'],
+    ['top-album-sales','Top Album Sales'],
     ['artists','Artist 50'],
     ['hot100Artists','Daegon 100 — Artists'],
     ['artistFemale','Top Artists — Female'],
