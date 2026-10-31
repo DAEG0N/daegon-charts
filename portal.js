@@ -36,6 +36,38 @@ window.DaegonDeezerArtist=function(artistName){
   deezerArtistRequests.set(key,promise);
   return promise;
 };
+// Verify an actual release artwork before resorting to a Deezer artist portrait.
+const appleReleaseRequests=new Map();
+window.DaegonAppleReleaseArtwork=function(entry,kind){
+  const name=String(entry?.name||'').trim(), artist=String(entry?.artist||'').trim();
+  if(!name||!artist||kind==='artist')return Promise.resolve('');
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const key=kind+'|'+norm(name)+'|'+norm(artist)+'|'+norm(entry?.album||'');
+  if(appleReleaseRequests.has(key))return appleReleaseRequests.get(key);
+  const find=async(title,entity,matchAlbum)=>{
+    const r=await fetch('https://itunes.apple.com/search?term='+encodeURIComponent(title+' '+artist)+'&entity='+entity+'&limit=50&country=br');
+    if(!r.ok)return '';
+    const d=await r.json();
+    const match=(d.results||[]).find(x=>{
+      const an=norm(x.artistName||'');
+      const release=norm(matchAlbum?(x.collectionName||''):(entity==='song'?x.trackName:x.collectionName));
+      return an===norm(artist)&&release===norm(title);
+    });
+    return (match?.artworkUrl100||'').replace(/\d+x\d+bb/,'1200x1200bb');
+  };
+  const promise=(async()=>{
+    try{
+      if(kind==='song'){
+        const song=await find(name,'song',false);if(song)return song;
+        if(entry.album){const album=await find(String(entry.album),'album',true);if(album)return album;}
+        return '';
+      }
+      return await find(name,'album',true);
+    }catch{return '';}
+  })();
+  appleReleaseRequests.set(key,promise);
+  return promise;
+};
 const mainChartIds={song:'songs',album:'albums',artist:'artists'};
 const periodLimits={songs:100,albums:100,artists:50};
 const PORTAL_SHEET='https://docs.google.com/spreadsheets/d/1t6_7SOlspmNYrXq8PSfJ74frIdrWwQBFITQ3bQmRzeg/gviz/tq?tq=select%20*&tqx=out:csv&gid=';
