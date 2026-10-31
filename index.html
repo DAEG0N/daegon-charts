@@ -3605,7 +3605,7 @@ function updateBrowserRoute(id,date,replace=false){
 const weeklyIds=Object.keys(charts);
 const state={active:'songs',cache:new Map(),filters:new Set(['all']),diffColors:false,date:null,details:new Set(),images:new Map(),previews:new Map(),audio:null,playingBtn:null};
 try{
-  const imageCacheVersion='artist-priority-v10-deezer-square-fallback';
+  const imageCacheVersion='artist-priority-v11-verified-release-first';
   if(localStorage.getItem('imageCacheVersion')!==imageCacheVersion){
     for(let i=localStorage.length-1;i>=0;i--){
       const k=localStorage.key(i);
@@ -4226,7 +4226,7 @@ async function resolveImage(e,cfg){
   // artist's square image instead of leaving the artwork slot empty.
   if(!url&&cfg.kind!=='artist'&&artist){
     try{
-      const artistUrl=await window.DaegonDeezerArtist?.(artist);
+      const artistUrl=(await window.DaegonAppleReleaseArtwork?.(e,cfg.kind))||(await window.DaegonDeezerArtist?.(artist));
       if(usableImage(artistUrl)&&/^https?:\/\//i.test(artistUrl))url=artistUrl;
     }catch{}
   }
@@ -5156,6 +5156,6 @@ if(/\/chart\//.test(location.pathname)){
   loadChart(initialRoute.id,initialRoute.date,{routeMode:'replace',scroll:false});
 }
 </script>
-<script src="/portal.js?v=20261031-deezer-square-fallback"></script>
+<script src="/portal.js?v=20261031-release-first-v2"></script>
 </body>
 </html>
