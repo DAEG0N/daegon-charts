@@ -2,6 +2,40 @@
 'use strict';
 
 const PORTAL_ROUTES=new Set(['','songs','albums','artists','number-ones','stats','year-end','decade-end','goat','chart-beat','awards','chart-battle','search','song','album','artist']);
+// Square Deezer artist photography for missing song/album artwork only.
+const deezerArtistRequests=new Map();
+let deezerCallbackSerial=0;
+window.DaegonDeezerArtist=function(artistName){
+  const name=String(artistName||'').trim();
+  if(!name)return Promise.resolve('');
+  const normalized=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const key=normalized(name);
+  if(deezerArtistRequests.has(key))return deezerArtistRequests.get(key);
+  const promise=new Promise(resolve=>{
+    const callback='__daegonDeezer'+(++deezerCallbackSerial);
+    const script=document.createElement('script');
+    let completed=false;
+    const finish=(image)=>{
+      if(completed)return;
+      completed=true;
+      clearTimeout(timer);
+      delete window[callback];
+      script.remove();
+      resolve(image||'');
+    };
+    const timer=setTimeout(()=>finish(''),7000);
+    window[callback]=data=>{
+      const artist=(data?.data||[]).find(a=>normalized(a.name)===key);
+      const picture=artist?.picture_xl||artist?.picture_big||artist?.picture_medium||'';
+      finish(/^https:\/\//i.test(picture)&&!picture.includes('no_picture')?picture:'');
+    };
+    script.onerror=()=>finish('');
+    script.src='https://api.deezer.com/search/artist?q='+encodeURIComponent(name)+'&limit=10&output=jsonp&callback='+callback;
+    document.head.appendChild(script);
+  });
+  deezerArtistRequests.set(key,promise);
+  return promise;
+};
 const mainChartIds={song:'songs',album:'albums',artist:'artists'};
 const periodLimits={songs:100,albums:100,artists:50};
 const PORTAL_SHEET='https://docs.google.com/spreadsheets/d/1t6_7SOlspmNYrXq8PSfJ74frIdrWwQBFITQ3bQmRzeg/gviz/tq?tq=select%20*&tqx=out:csv&gid=';
