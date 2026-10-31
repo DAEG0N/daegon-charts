@@ -4443,3 +4443,15 @@ html body .site-header .theme-btn .fa-moon,
 html body .global-static-header .theme-btn .fa-moon{
   color:#fff!important;
 }
+
+/* Explicitly color the Font Awesome moon glyph (including its pseudo-element). */
+#themeToggle .fa-moon,
+#themeToggle .fa-moon::before,
+#globalThemeToggle .fa-moon,
+#globalThemeToggle .fa-moon::before,
+.theme-btn .fa-moon,
+.theme-btn .fa-moon::before {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
