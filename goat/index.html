@@ -4212,7 +4212,8 @@ async function resolveImage(e,cfg){
     }catch{return ''}
   }
 
-  let url=await requestArtwork(searchName||name);
+  let url=await window.DaegonAppleReleaseArtwork?.({name,artist,album:e.album},cfg.kind)||'';
+  if(!url)url=await requestArtwork(searchName||name);
   if(!url&&searchName&&searchName!==name)url=await requestArtwork(name);
 
   const isReal=usableImage(url)&&/^https?:\/\//i.test(url);
