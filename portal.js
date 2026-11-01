@@ -1570,7 +1570,7 @@ async function renderStats(){
       select('origStatsSort',[['auto','Best First'],['value-desc','Highest Value'],['value-asc','Lowest Value'],['name-asc','Name A–Z'],['name-desc','Name Z–A']],sort)+
       '<input id="origStatsSearch" type="search" placeholder="Search by name..." value="'+escAttr(search)+'" aria-label="Search records">'+
       select('origStatsArtist',[['all','All Artists'],...allArtists.map(a=>[a,a])],artist)+'</section>'+
-      '<section class="orig-overview"><div class="orig-eyebrow">Overview</div><div class="orig-summary-grid">'+summary+'</div></section>'+
+
       '<div class="orig-stats-count">'+records.length+' records found</div>'+
       '<section class="orig-record-list">'+(rows||'<p>No records found. Try another filter.</p>')+'</section>'+
       (pages>1?'<div class="orig-stats-pagination"><button id="statsPrev" '+(page===1?'disabled':'')+'>Prev</button><span>Page '+page+' of '+pages+'</span><button id="statsNext" '+(page===pages?'disabled':'')+'>Next</button></div>':'')+
