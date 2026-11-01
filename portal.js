@@ -1482,7 +1482,11 @@ async function renderStats(){
   const STATS_FIRST_WEEK='2017-06-24';
   const loaded=await Promise.all(ids.map(async id=>{
     try{
-      const source=await loadWeekly(id);
+      // Stats must read only the primary spreadsheet, never secondary Supabase data.
+      const cfg=charts[id];
+      const spreadsheetRows=await fetchRows(cfg.url);
+      const entries=parseSheet(spreadsheetRows,cfg);
+      const source={kind:cfg.kind,dates:Object.keys(entries).sort(),entriesByDate:entries};
       const dates=(source.dates||[]).filter(date=>date>=STATS_FIRST_WEEK).sort();
       const entriesByDate={};
       for(const date of dates)entriesByDate[date]=source.entriesByDate?.[date]||[];
