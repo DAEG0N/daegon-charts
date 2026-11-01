@@ -1470,12 +1470,77 @@ async function renderStats(){
     if(!item)continue;
     const {id,data}=item,kind=charts[id]?.kind||'song',items=aggregateCatalog(data,kind);
     (data.dates||[]).forEach(d=>availableYears.add(d.slice(0,4)));
-    const metrics=[
-      {title:'Most Weeks Charted',icon:'fa-calendar',key:'weeks',value:x=>x.weeks+' Weeks'},
-      {title:'Most Weeks at #1',icon:'fa-trophy',key:'weeksAt1',value:x=>x.weeksAt1+' Weeks'},
-      {title:'Best Peak',icon:'fa-arrow-trend-up',key:'peak',value:x=>'Peak #'+x.peak,ascending:true}
+    const key=x=>kind==='artist'?String(x.name).toLowerCase():String(x.name).toLowerCase()+'||'+String(x.artist).toLowerCase();
+    const stats=new Map(),simul=new Map(),artistEntries=new Map(),artistTop=new Map(),artistDebuts=new Map(),changesUp=[],changesDown=[];
+    let previous=new Map();
+    for(const date of data.dates){
+      const current=new Map(),counts=new Map();
+      for(const e of data.entriesByDate[date]||[]){
+        const k=key(e),pos=Number(e.position),art=kind==='artist'?e.name:e.artist||e.name;
+        if(!pos||!e.name)continue;
+        current.set(k,pos);
+        let s=stats.get(k);
+        if(!s){s={name:e.name,artist:e.artist||e.name,firstDate:date,peak:pos,weeks:0,at1:0,top5:0,top10:0,top50:0,debutPosition:pos,debutMetric:Number(e.units||e.sales||e.streams||e.audience||e.points||0)};stats.set(k,s)}
+        s.weeks++;s.peak=Math.min(s.peak,pos);
+        if(pos===1)s.at1++;
+        if(pos<=5)s.top5++;
+        if(pos<=10)s.top10++;
+        if(pos<=50)s.top50++;
+        if(s.firstDate===date){s.debutPosition=pos;s.debutMetric=Number(e.units||e.sales||e.streams||e.audience||e.points||0)}
+        if(!artistEntries.has(art))artistEntries.set(art,new Set());
+        artistEntries.get(art).add(e.name);
+        if(!artistTop.has(art))artistTop.set(art,{at1:new Set(),top5:new Set(),top10:new Set()});
+        if(pos===1)artistTop.get(art).at1.add(e.name);
+        if(pos<=5)artistTop.get(art).top5.add(e.name);
+        if(pos<=10)artistTop.get(art).top10.add(e.name);
+        const newly=String(e.diff||e.dif||'').trim().toUpperCase()==='NEW'||(s.weeks===1&&!previous.has(k));
+        if(newly){
+          if(!artistDebuts.has(art))artistDebuts.set(art,{at1:new Set(),top5:new Set(),top10:new Set()});
+          if(pos===1)artistDebuts.get(art).at1.add(e.name);
+          if(pos<=5)artistDebuts.get(art).top5.add(e.name);
+          if(pos<=10)artistDebuts.get(art).top10.add(e.name);
+        }
+        if(previous.has(k)){
+          const delta=previous.get(k)-pos;
+          if(delta>=5)changesUp.push({name:e.name,artist:e.artist||e.name,peak:s.peak,firstDate:date,value:delta,details:'#'+previous.get(k)+' → #'+pos+' · '+date});
+          if(delta<=-5)changesDown.push({name:e.name,artist:e.artist||e.name,peak:s.peak,firstDate:date,value:-delta,details:'#'+previous.get(k)+' → #'+pos+' · '+date});
+        }
+        if(!counts.has(art))counts.set(art,[]);
+        counts.get(art).push(e.name);
+      }
+      for(const [art,names] of counts){
+        const p=simul.get(art);if(names.length>=2&&(!p||names.length>p.value))simul.set(art,{name:art,artist:art,value:names.length,firstDate:date,details:names.join(', ')});
+      }
+      previous=current;
+    }
+    const raw=[...stats.values()];
+    const number=(rows,fn,label,icon,title)=>({title,icon,records:rows.map(x=>({...x,value:fn(x)})).filter(x=>Number.isFinite(x.value)&&x.value>0).sort((x,y)=>y.value-x.value).slice(0,1000),metric:x=>x.value,value:x=>label(x.value)});
+    const weeks=(field,title,icon)=>number(raw,x=>x[field],v=>v+' weeks',icon,title);
+    const artists=(map,field,title,icon,label)=>number([...map].map(([artist,v])=>({name:artist,artist,firstDate:'',n:v})),x=>x.n[field].size,v=>v+' '+label,icon,title);
+    const entries=number([...artistEntries].map(([artist,v])=>({name:artist,artist,n:v})),x=>x.n.size,v=>v+' entries','fa-users','Artists with Most Entries');
+    const debuts=number(raw,x=>x.debutMetric||Math.max(1,101-x.debutPosition),v=>String(v),'fa-rocket','Biggest Debuts');
+    debuts.records.forEach(x=>{x.valueLabel=x.debutMetric?x.debutMetric+' units':'#'+x.debutPosition+' debut'});
+    const change=(arr,title,icon,prefix)=>number(arr,x=>x.value,v=>prefix+v,icon,title);
+    chartStats[id]=[
+      debuts,
+      weeks('at1','Most Weeks at #1','fa-crown'),
+      weeks('top5','Most Weeks in Top 5','fa-star'),
+      weeks('top10','Most Weeks in Top 10','fa-chart-line'),
+      weeks('top50','Most Weeks in Top 50','fa-list-ol'),
+      weeks('weeks','Most Weeks on Chart','fa-calendar-check'),
+      number([...simul.values()],x=>x.value,v=>v+' entries','fa-layer-group','Most Simultaneous Entries'),
+      entries,
+      change(changesDown,'Biggest Drops','fa-arrow-down','▼'),
+      change(changesUp,'Biggest Gainers','fa-arrow-up','▲'),
+      artists(artistTop,'at1',"Artists with Most #1's",'fa-crown',"#1's"),
+      artists(artistTop,'top5','Artists with Most Top 5','fa-arrow-up','top 5'),
+      artists(artistTop,'top10','Artists with Most Top 10','fa-chart-line','top 10'),
+      artists(artistDebuts,'at1','Artists with Most Debuts at #1','fa-rocket','debut #1s'),
+      artists(artistDebuts,'top5','Artists with Most Debuts on Top 5','fa-rocket','top 5 debuts'),
+      artists(artistDebuts,'top10','Artists with Most Debuts on Top 10','fa-rocket','top 10 debuts')
     ];
-    chartStats[id]=metrics.map(m=>({...m,records:[...items].sort((a,b)=>m.ascending?(Number(a[m.key]||999)-Number(b[m.key]||999)||b.weeks-a.weeks):(Number(b[m.key]||0)-Number(a[m.key]||0)||b.weeks-a.weeks)).slice(0,200),metric:x=>Number(x[m.key]||0)}));
+    chartStats[id].forEach(c=>c.value=x=>x.valueLabel||String(x.value));
+
   }
   const present=ids.filter(id=>chartStats[id]);
   if(!present.length){portalEl.innerHTML=shellHtml('<div class="orig-stats-page"><h1>Stats</h1><p>Chart data is temporarily unavailable.</p></div>');return}
