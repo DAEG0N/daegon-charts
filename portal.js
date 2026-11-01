@@ -1461,6 +1461,19 @@ async function renderNumberOnes(){
   setMode(true);setMeta("#1's","See the #1 hit on every chart for any given week.","/number-ones");draw();
 }
 
+function statsDebutMetric(e,chartId){
+  // Read the raw spreadsheet metric corresponding to the selected chart.
+  const field=chartId==='streamingSongs'||chartId==='topStreamingAlbums'?'streams':
+    chartId==='radioSongs'?'audience':
+    chartId==='digitalSongsSales'||chartId==='topAlbumSales'?'sales':
+    chartId==='songs'?'points':'units';
+  const raw=e[field];
+  if(raw===null||raw===undefined||String(raw).trim()==='')return 0;
+  const normalized=String(raw).trim().replace(/[\s,]/g,'');
+  const numeric=Number(normalized);
+  return Number.isFinite(numeric)?numeric:0;
+}
+
 async function renderStats(){
   loading('Stats');
   const ids=['songs','streamingSongs','radioSongs','digitalSongsSales','albums','topStreamingAlbums','topAlbumSales','artists'];
@@ -1491,13 +1504,13 @@ async function renderStats(){
         if(!pos||!e.name)continue;
         current.set(k,pos);
         let s=stats.get(k);
-        if(!s){s={name:e.name,artist:e.artist||e.name,firstDate:date,peak:pos,weeks:0,at1:0,top5:0,top10:0,top50:0,debutPosition:pos,debutMetric:Number(e.units||e.sales||e.streams||e.audience||e.points||0)};stats.set(k,s)}
+        if(!s){s={name:e.name,artist:e.artist||e.name,firstDate:date,peak:pos,weeks:0,at1:0,top5:0,top10:0,top50:0,debutPosition:pos,debutMetric:statsDebutMetric(e,id)};stats.set(k,s)}
         s.weeks++;s.peak=Math.min(s.peak,pos);
         if(pos===1)s.at1++;
         if(pos<=5)s.top5++;
         if(pos<=10)s.top10++;
         if(pos<=50)s.top50++;
-        if(s.firstDate===date){s.debutPosition=pos;s.debutMetric=Number(e.units||e.sales||e.streams||e.audience||e.points||0)}
+        if(s.firstDate===date){s.debutPosition=pos;s.debutMetric=statsDebutMetric(e,id)}
         if(!artistEntries.has(art))artistEntries.set(art,new Set());
         artistEntries.get(art).add(e.name);
         if(!artistTop.has(art))artistTop.set(art,{at1:new Set(),top5:new Set(),top10:new Set()});
@@ -1544,8 +1557,10 @@ async function renderStats(){
     }
     const artistWeeks=number([...artistWeeksMap.values()],x=>x.weeksTotal,v=>v+' weeks','fa-calendar-days','Artists with Most Weeks on Chart');
     artistWeeks.records.forEach(x=>{x.details=x.itemCount+' chart '+(x.itemCount===1?'entry':'entries')+' · summed weeks';});
-    const debuts=number(raw,x=>x.debutMetric||Math.max(1,101-x.debutPosition),v=>String(v),'fa-rocket','Biggest Debuts');
-    debuts.records.forEach(x=>{x.valueLabel=x.debutMetric?x.debutMetric+' units':'#'+x.debutPosition+' debut'});
+    // Biggest Debuts: actual debut-week metric, descending, exactly formatted with separators.
+    // Do not substitute chart position or extrapolated values for missing spreadsheet data.
+    const debuts=number(raw.filter(x=>x.debutMetric>0),x=>x.debutMetric,v=>v.toLocaleString('en-US',{maximumFractionDigits:20}),'fa-rocket','Biggest Debuts');
+    debuts.records.forEach(x=>{x.valueLabel=x.debutMetric.toLocaleString('en-US',{maximumFractionDigits:20})});
     const change=(arr,title,icon,prefix)=>number(arr,x=>x.value,v=>prefix+v,icon,title);
     chartStats[id]=[
       debuts,
