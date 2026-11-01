@@ -1464,7 +1464,18 @@ async function renderNumberOnes(){
 async function renderStats(){
   loading('Stats');
   const ids=['songs','streamingSongs','radioSongs','digitalSongsSales','albums','topStreamingAlbums','topAlbumSales','artists'];
-  const loaded=await Promise.all(ids.map(async id=>{try{return {id,data:await loadWeekly(id)}}catch{return null}}));
+  // Stats uses spreadsheet chart rows only, starting with the first active week (2017-06-24).
+  // Apply this boundary before calculating any category or cumulative artist totals.
+  const STATS_FIRST_WEEK='2017-06-24';
+  const loaded=await Promise.all(ids.map(async id=>{
+    try{
+      const source=await loadWeekly(id);
+      const dates=(source.dates||[]).filter(date=>date>=STATS_FIRST_WEEK).sort();
+      const entriesByDate={};
+      for(const date of dates)entriesByDate[date]=source.entriesByDate?.[date]||[];
+      return {id,data:{...source,dates,entriesByDate}};
+    }catch{return null}
+  }));
   const chartStats={},availableYears=new Set();
   for(const item of loaded){
     if(!item)continue;
