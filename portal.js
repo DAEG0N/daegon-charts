@@ -1469,7 +1469,16 @@ function statsDebutMetric(e,chartId){
     chartId==='songs'?'points':'units';
   const raw=e[field];
   if(raw===null||raw===undefined||String(raw).trim()==='')return 0;
-  const normalized=String(raw).trim().replace(/[\s,]/g,'');
+  let normalized=String(raw).trim().replace(/\s/g,'');
+  // Sheets store Brazilian thousands as dots (e.g. 935.000 = 935000).
+  // A comma is decimal only when it is not a thousands separator.
+  if(/^[-+]?\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(normalized)){
+    normalized=normalized.replace(/\./g,'').replace(',', '.');
+  }else if(/^[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(normalized)){
+    normalized=normalized.replace(/,/g,'');
+  }else if(normalized.includes(',')){
+    normalized=normalized.replace(/\./g,'').replace(',', '.');
+  }
   const numeric=Number(normalized);
   return Number.isFinite(numeric)?numeric:0;
 }
