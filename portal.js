@@ -1518,6 +1518,21 @@ async function renderStats(){
     const weeks=(field,title,icon)=>number(raw,x=>x[field],v=>v+' weeks',icon,title);
     const artists=(map,field,title,icon,label)=>number([...map].map(([artist,v])=>({name:artist,artist,firstDate:'',n:v})),x=>x.n[field].size,v=>v+' '+label,icon,title);
     const entries=number([...artistEntries].map(([artist,v])=>({name:artist,artist,n:v})),x=>x.n.size,v=>v+' entries','fa-users','Artists with Most Entries');
+    // Sum every individual chart entry's weeks for each artist (not unique calendar weeks).
+    // Example: three songs charting for 100 weeks each = 300 artist-weeks.
+    const artistWeeksMap=new Map();
+    for(const entry of raw){
+      const name=String(kind==='artist'?entry.name:entry.artist||'').trim();
+      if(!name)continue;
+      const normalized=name.toLocaleLowerCase();
+      if(!artistWeeksMap.has(normalized))artistWeeksMap.set(normalized,{name,artist:name,weeksTotal:0,itemCount:0,firstDate:entry.firstDate});
+      const group=artistWeeksMap.get(normalized);
+      group.weeksTotal+=entry.weeks;
+      group.itemCount++;
+      if(entry.firstDate&&(!group.firstDate||entry.firstDate<group.firstDate))group.firstDate=entry.firstDate;
+    }
+    const artistWeeks=number([...artistWeeksMap.values()],x=>x.weeksTotal,v=>v+' weeks','fa-calendar-days','Artists with Most Weeks on Chart');
+    artistWeeks.records.forEach(x=>{x.details=x.itemCount+' chart '+(x.itemCount===1?'entry':'entries')+' · summed weeks';});
     const debuts=number(raw,x=>x.debutMetric||Math.max(1,101-x.debutPosition),v=>String(v),'fa-rocket','Biggest Debuts');
     debuts.records.forEach(x=>{x.valueLabel=x.debutMetric?x.debutMetric+' units':'#'+x.debutPosition+' debut'});
     const change=(arr,title,icon,prefix)=>number(arr,x=>x.value,v=>prefix+v,icon,title);
@@ -1528,6 +1543,7 @@ async function renderStats(){
       weeks('top10','Most Weeks in Top 10','fa-chart-line'),
       weeks('top50','Most Weeks in Top 50','fa-list-ol'),
       weeks('weeks','Most Weeks on Chart','fa-calendar-check'),
+      artistWeeks,
       number([...simul.values()],x=>x.value,v=>v+' entries','fa-layer-group','Most Simultaneous Entries'),
       entries,
       change(changesDown,'Biggest Drops','fa-arrow-down','▼'),
