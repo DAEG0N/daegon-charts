@@ -1463,29 +1463,65 @@ async function renderNumberOnes(){
 
 async function renderStats(){
   loading('Stats');
-  const ids=['songs','albums','artists'],datasets=await Promise.all(ids.map(loadWeekly));
-  const chartStats={};
-  ids.forEach((id,i)=>{
-    const kind=charts[id].kind,items=aggregateCatalog(datasets[i],kind);
-    chartStats[id]=[
-      {title:'Most Weeks Charted',icon:'fa-calendar',records:[...items].sort((a,b)=>b.weeks-a.weeks).slice(0,25),value:x=>x.weeks+' Weeks'},
-      {title:'Most Weeks at #1',icon:'fa-trophy',records:[...items].sort((a,b)=>b.weeksAt1-a.weeksAt1||b.weeks-a.weeks).slice(0,25),value:x=>x.weeksAt1+' Weeks'},
-      {title:'Best Peak',icon:'fa-arrow-trend-up',records:[...items].sort((a,b)=>a.peak-b.peak||b.weeks-a.weeks).slice(0,25),value:x=>'Peak #'+x.peak}
+  const ids=['songs','streamingSongs','radioSongs','digitalSongsSales','albums','topStreamingAlbums','topAlbumSales','artists'];
+  const loaded=await Promise.all(ids.map(async id=>{try{return {id,data:await loadWeekly(id)}}catch{return null}}));
+  const chartStats={},availableYears=new Set();
+  for(const item of loaded){
+    if(!item)continue;
+    const {id,data}=item,kind=charts[id]?.kind||'song',items=aggregateCatalog(data,kind);
+    (data.dates||[]).forEach(d=>availableYears.add(d.slice(0,4)));
+    const metrics=[
+      {title:'Most Weeks Charted',icon:'fa-calendar',key:'weeks',value:x=>x.weeks+' Weeks'},
+      {title:'Most Weeks at #1',icon:'fa-trophy',key:'weeksAt1',value:x=>x.weeksAt1+' Weeks'},
+      {title:'Best Peak',icon:'fa-arrow-trend-up',key:'peak',value:x=>'Peak #'+x.peak,ascending:true}
     ];
-  });
-  let active='songs',type=0;
+    chartStats[id]=metrics.map(m=>({...m,records:[...items].sort((a,b)=>m.ascending?(Number(a[m.key]||999)-Number(b[m.key]||999)||b.weeks-a.weeks):(Number(b[m.key]||0)-Number(a[m.key]||0)||b.weeks-a.weeks)).slice(0,200),metric:x=>Number(x[m.key]||0)}));
+  }
+  const present=ids.filter(id=>chartStats[id]);
+  if(!present.length){portalEl.innerHTML=shellHtml('<div class="orig-stats-page"><h1>Stats</h1><p>Chart data is temporarily unavailable.</p></div>');return}
+  let active=present[0],type=0,year='all',search='',artist='all',sort='auto',page=1;
+  const PAGE_SIZE=50;
+  const years=[...availableYears].sort().reverse();
   const draw=()=>{
-    const cats=chartStats[active],cat=cats[type],kind=charts[active].kind;
+    const cats=chartStats[active],cat=cats[type]||cats[0],kind=charts[active]?.kind||'song';
+    const allArtists=[...new Set(cat.records.map(x=>x.artist||x.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    let records=cat.records.filter(x=>{
+      const d=String(x.firstDate||x.date||'');
+      return (year==='all'||(!d||d.startsWith(year)))&&(artist==='all'||(x.artist||x.name)===artist)&&(!search||String(x.name||'').toLowerCase().includes(search.toLowerCase())||String(x.artist||'').toLowerCase().includes(search.toLowerCase()));
+    });
+    if(sort==='name-asc')records.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    else if(sort==='name-desc')records.sort((a,b)=>String(b.name).localeCompare(String(a.name)));
+    else if(sort==='value-asc'||sort==='value-desc')records.sort((a,b)=>(cat.metric(a)-cat.metric(b))*(sort==='value-asc'?1:-1));
+    const pages=Math.max(1,Math.ceil(records.length/PAGE_SIZE));page=Math.max(1,Math.min(page,pages));
     const summary=cats.map(c=>{const x=c.records[0];return '<div class="orig-summary-card"><div class="orig-summary-head"><span class="orig-summary-icon"><i class="fas '+c.icon+'"></i></span><span>'+esc(c.title)+'</span></div>'+(x?'<div class="orig-summary-name">'+esc(portalText(x.name))+'</div>'+(kind!=='artist'?'<div class="orig-summary-artist">'+artistLink(x.artist||'')+'</div>':'')+'<div class="orig-summary-value">'+esc(c.value(x))+'</div>':'')+'</div>'}).join('');
-    const rows=cat.records.map((x,i)=>'<div class="orig-record-row"><div class="orig-record-rank '+(i<3?'top':'')+'">'+(i+1)+'</div>'+refThumb(x,kind)+'<div class="orig-record-main"><div class="orig-record-name">'+entityLink(x,kind)+'</div>'+(kind!=='artist'?'<div class="orig-record-artist">'+artistLink(x.artist||'')+'</div>':'')+'</div><div class="orig-record-value">'+esc(cat.value(x))+(x.peak?'<small>Peak #'+x.peak+'</small>':'')+'</div></div>').join('');
-    const main='<div class="orig-stats-page">'+originalHero('STATS','Stats','Records, milestones & chart history across every chart')+
-      '<section class="orig-stats-tools"><select id="origStatsChart"><option value="songs" '+(active==='songs'?'selected':'')+'>Hot 100</option><option value="albums" '+(active==='albums'?'selected':'')+'>Top 100 Albums</option><option value="artists" '+(active==='artists'?'selected':'')+'>Artist 50</option></select><select id="origStatsType">'+cats.map((c,i)=>'<option value="'+i+'" '+(i===type?'selected':'')+'>'+esc(c.title)+'</option>').join('')+'</select></section>'+
+    const rows=records.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE).map((x,i)=>'<div class="orig-record-row"><div class="orig-record-rank '+(i+(page-1)*PAGE_SIZE<3?'top':'')+'">'+(i+1+(page-1)*PAGE_SIZE)+'</div>'+refThumb(x,kind)+'<div class="orig-record-main"><div class="orig-record-name">'+entityLink(x,kind)+'</div>'+(kind!=='artist'?'<div class="orig-record-artist">'+artistLink(x.artist||'')+'</div>':'')+'</div><div class="orig-record-value">'+esc(cat.value(x))+(x.peak?'<small>Peak #'+x.peak+'</small>':'')+'</div></div>').join('');
+    const select=(id,options,selected)=>'<select id="'+id+'">'+options.map(o=>'<option value="'+escAttr(String(o[0]))+'" '+(String(o[0])===String(selected)?'selected':'')+'>'+esc(String(o[1]))+'</option>').join('')+'</select>';
+    const style='<style id="stats-extended-style">.orig-stats-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.orig-stats-tools select,.orig-stats-tools input{min-width:0;flex:1 1 170px;padding:12px;border:1px solid var(--border,#444);border-radius:8px;background:var(--card,#181818);color:var(--foreground,#fff);font:inherit}.orig-stats-tools input{flex:2 1 220px}.orig-stats-count{margin:18px 0;color:var(--muted-foreground,#999);font-size:13px}.orig-stats-pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin:24px 0}.orig-stats-pagination button{padding:10px 18px;border:1px solid var(--border,#444);background:var(--card,#222);color:inherit;border-radius:8px;cursor:pointer}.orig-stats-pagination button:disabled{opacity:.35;cursor:default}@media(max-width:620px){.orig-stats-tools select,.orig-stats-tools input{flex-basis:calc(50% - 6px)}.orig-record-row{min-width:0}}</style>';
+    const main='<div class="orig-stats-page">'+style+originalHero('STATS','Stats','Records, milestones & chart history across every chart')+
+      '<section class="orig-stats-tools">'+
+      select('origStatsChart',present.map(id=>[id,charts[id]?.title||id]),active)+
+      select('origStatsType',cats.map((c,i)=>[i,c.title]),type)+
+      select('origStatsYear',[['all','All Years'],...years.map(y=>[y,y])],year)+
+      select('origStatsSort',[['auto','Best First'],['value-desc','Highest Value'],['value-asc','Lowest Value'],['name-asc','Name A–Z'],['name-desc','Name Z–A']],sort)+
+      '<input id="origStatsSearch" type="search" placeholder="Search by name..." value="'+escAttr(search)+'" aria-label="Search records">'+
+      select('origStatsArtist',[['all','All Artists'],...allArtists.map(a=>[a,a])],artist)+'</section>'+
       '<section class="orig-overview"><div class="orig-eyebrow">Overview</div><div class="orig-summary-grid">'+summary+'</div></section>'+
-      '<section class="orig-record-list">'+rows+'</section>'+
-    '</div>';
+      '<div class="orig-stats-count">'+records.length+' records found</div>'+
+      '<section class="orig-record-list">'+(rows||'<p>No records found. Try another filter.</p>')+'</section>'+
+      (pages>1?'<div class="orig-stats-pagination"><button id="statsPrev" '+(page===1?'disabled':'')+'>Prev</button><span>Page '+page+' of '+pages+'</span><button id="statsNext" '+(page===pages?'disabled':'')+'>Next</button></div>':'')+
+      '</div>';
     setMode(true);portalEl.innerHTML=shellHtml(main);setMeta('Stats','Records, milestones & chart history across every chart.','/stats');bindLinks();hydratePortalImages();
-    document.getElementById('origStatsChart').onchange=e=>{active=e.target.value;type=0;draw()};
-    document.getElementById('origStatsType').onchange=e=>{type=Number(e.target.value);draw()};
+    const bind=(id,fn,event='change')=>{const el=document.getElementById(id);if(el)el.addEventListener(event,e=>fn(e.target.value))};
+    bind('origStatsChart',v=>{active=v;type=0;year='all';artist='all';page=1;draw()});
+    bind('origStatsType',v=>{type=Number(v);artist='all';page=1;draw()});
+    bind('origStatsYear',v=>{year=v;page=1;draw()});
+    bind('origStatsSort',v=>{sort=v;page=1;draw()});
+    bind('origStatsArtist',v=>{artist=v;page=1;draw()});
+    const searchEl=document.getElementById('origStatsSearch');
+    if(searchEl)searchEl.addEventListener('change',e=>{search=e.target.value;page=1;draw()});
+    const prev=document.getElementById('statsPrev'),next=document.getElementById('statsNext');
+    if(prev)prev.onclick=()=>{page--;draw()};
+    if(next)next.onclick=()=>{page++;draw()};
   };
   draw();
 }
