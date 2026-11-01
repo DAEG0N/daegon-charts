@@ -1164,6 +1164,9 @@ async function computeGenderYecExact(category){
   const entriesByYear={};
   for(const y of base.years){
     entriesByYear[y]=(base.entriesByYear[y]||[]).filter(e=>{
+      // Potyguara Bardo is a non-binary solo artist, not a duo/group or gendered category.
+      // Keep the artist in general YEC and New Artists rankings unchanged.
+      if(slugify(e.name)==='potyguara-bardo')return false;
       const m=meta[slugify(e.name)];return m?.categoryConfirmed&&m.category===category;
     }).slice(0,10).map((e,i)=>({...e,position:i+1}));
   }
