@@ -1518,6 +1518,20 @@ async function renderStats(){
         current.set(k,pos);
         let s=stats.get(k);
         if(!s){s={name:e.name,artist:e.artist||e.name,firstDate:date,peak:pos,weeks:0,at1:0,top5:0,top10:0,top50:0,debutPosition:pos,debutMetric:statsDebutMetric(e,id)};stats.set(k,s)}
+        // Strict weekly streaks: any absence, ineligible rank, or missing calendar week breaks a run.
+        // Only the longest continuous run for each entry is retained.
+        if(!s.streaks)s.streaks={at1:0,top5:0,top10:0,bestAt1:0,bestTop5:0,bestTop10:0,lastDate:''};
+        const streak=s.streaks;
+        const consecutive=streak.lastDate&&
+          (Date.parse(date+'T00:00:00Z')-Date.parse(streak.lastDate+'T00:00:00Z')===7*86400000);
+        if(!consecutive){streak.at1=0;streak.top5=0;streak.top10=0}
+        streak.at1=pos===1?streak.at1+1:0;
+        streak.top5=pos<=5?streak.top5+1:0;
+        streak.top10=pos<=10?streak.top10+1:0;
+        streak.bestAt1=Math.max(streak.bestAt1,streak.at1);
+        streak.bestTop5=Math.max(streak.bestTop5,streak.top5);
+        streak.bestTop10=Math.max(streak.bestTop10,streak.top10);
+        streak.lastDate=date;
         s.weeks++;s.peak=Math.min(s.peak,pos);
         if(pos===1)s.at1++;
         if(pos<=5)s.top5++;
@@ -1578,6 +1592,9 @@ async function renderStats(){
     chartStats[id]=[
       debuts,
       weeks('at1','Most Weeks at #1','fa-crown'),
+      number(raw,x=>x.streaks?.bestAt1||0,v=>v+' consecutive weeks','fa-link','Most Consecutive Weeks at #1'),
+      number(raw,x=>x.streaks?.bestTop5||0,v=>v+' consecutive weeks','fa-link','Most Consecutive Weeks in Top 5'),
+      number(raw,x=>x.streaks?.bestTop10||0,v=>v+' consecutive weeks','fa-link','Most Consecutive Weeks in Top 10'),
       weeks('top5','Most Weeks in Top 5','fa-star'),
       weeks('top10','Most Weeks in Top 10','fa-chart-line'),
       weeks('top50','Most Weeks in Top 50','fa-list-ol'),
