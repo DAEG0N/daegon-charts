@@ -2201,7 +2201,7 @@ function awardCardList(data){
     const sorted=[...(data.categories[cat]||[])].sort((a,b)=>(b.status==='Winner')-(a.status==='Winner')||a.artist.localeCompare(b.artist));
     if(!sorted.length)return '';
     return '<section class="aw-category"><button class="aw-category-toggle" type="button" aria-expanded="true"><span>'+esc(cat)+'</span><span class="aw-plus">−</span></button><div class="aw-nominees">'+sorted.map(n=>
-      '<div class="aw-nominee '+(n.status==='Winner'?'winner':'')+'"><div class="aw-avatar" data-aw-artist="'+escAttr(n.artist)+'"><i class="fas fa-user"></i></div><div class="aw-nominee-info"><div class="aw-nominee-name">'+awardArtistLink(n.artist)+'</div>'+
+      '<div class="aw-nominee '+(n.status==='Winner'?'winner':'')+'"><div class="aw-avatar" data-portal-image data-kind="artist" data-name="'+escAttr(n.artist)+'" data-artist="'+escAttr(n.artist)+'"><i class="fas fa-user"></i></div><div class="aw-nominee-info"><div class="aw-nominee-name">'+awardArtistLink(n.artist)+'</div>'+
       (n.item?'<div class="aw-item">'+esc(n.item)+'</div>':'')+
       (n.feature&&!noFeature.includes(cat)?'<div class="aw-feature">feat. '+n.feature.split(',').map(x=>awardArtistLink(x.trim())).join(', ')+'</div>':'')+
       '</div><span class="aw-status '+(n.status==='Winner'?'win':'')+'">'+(n.status==='Winner'?'Winner':'Nominated')+'</span></div>').join('')+'</div></section>';
@@ -2218,7 +2218,7 @@ function awardCategories(all){
 }
 function awardArtistsView(all){
   return awardHeading('All Artists')+'<div class="aw-artist-grid">'+awardArtists(all).map(a=>
-    awardLink('/artist/'+awardSlug(a.name),'<span class="aw-artist-photo" data-aw-artist="'+escAttr(a.name)+'"><i class="fas fa-user"></i></span><span class="aw-artist-name">'+esc(a.name)+'</span><span class="aw-artist-totals"><span><b>'+a.wins+'</b> wins</span><span><b>'+a.nominations+'</b> noms</span></span>','aw-artist-card')
+    awardLink('/artist/'+awardSlug(a.name),'<span class="aw-artist-photo" data-portal-image data-kind="artist" data-name="'+escAttr(a.name)+'" data-artist="'+escAttr(a.name)+'"><i class="fas fa-user"></i></span><span class="aw-artist-name">'+esc(a.name)+'</span><span class="aw-artist-totals"><span><b>'+a.wins+'</b> wins</span><span><b>'+a.nominations+'</b> noms</span></span>','aw-artist-card')
   ).join('')+'</div>';
 }
 function awardStatsView(all){
@@ -2233,6 +2233,29 @@ function awardStatsView(all){
 }
 function awardAbout(){
   return awardHeading('About Daegon Awards')+'<div class="aw-about"><h3>Our Mission</h3><p>The Daegon Awards were established to recognize and celebrate exceptional talent in the music industry. Our goal is to honor artists, producers, and contributors who have made significant impacts through their creative work.</p><h3>Selection Process</h3><p>Nominees and winners are documented in the official Daegon Awards editions. Consult the source sheets for the recorded results.</p><h3>Data Source</h3><p>All award data is sourced from publicly available Google Sheets that document the nominations and winners for each edition of the Daegon Awards from 2017 to 2025.</p><a class="aw-back" href="https://docs.google.com/spreadsheets/d/'+AWARD_SHEET+'" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> View Data Source</a></div>';
+}
+function awardHydrateImages(){
+  const nodes=[...portalEl.querySelectorAll('.orig-awards [data-portal-image]')];
+  let active=0,index=0;
+  const queue=[];
+  function drain(){
+    while(active<4&&queue.length){
+      const node=queue.shift();if(!node.isConnected)continue;
+      active++;
+      resolveImage({name:node.dataset.name,artist:node.dataset.artist},{kind:'artist'})
+        .then(url=>{if(url&&node.isConnected)node.innerHTML='<img src="'+escAttr(url)+'" alt="" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover">'})
+        .catch(()=>{}).finally(()=>{active--;drain()});
+    }
+  }
+  if('IntersectionObserver' in window){
+    const observer=new IntersectionObserver(entries=>{
+      for(const entry of entries)if(entry.isIntersecting){observer.unobserve(entry.target);queue.push(entry.target)}
+      drain();
+    },{rootMargin:'320px'});
+    nodes.forEach(node=>observer.observe(node));
+  }else{
+    queue.push(...nodes.slice(0,60));drain();
+  }
 }
 function awardBindInteractions(){
   portalEl.querySelectorAll('.aw-category-toggle').forEach(button=>button.onclick=()=>{
@@ -2285,7 +2308,7 @@ async function renderAwards(){
     content.innerHTML=year?awardHeading(title)+awardCardList(data):
       section==='categories'?awardCategories(data):section==='artists'?awardArtistsView(data):
       section==='stats'?awardStatsView(data):awardHeading(title)+'<p>Page not found.</p>';
-    awardBindInteractions();bindLinks();
+    awardBindInteractions();bindLinks();awardHydrateImages();
   }catch(err){
     if(route!==awardsPath())return;
     const content=portalEl.querySelector('#awContent');
