@@ -2099,18 +2099,199 @@ async function renderChartBeat(){
   draw();
 }
 
-async function renderAwards(){
-  loading('Awards');
-  const editions=[2025,2024,2023,2022,2021,2020,2019,2018,2017];
-  const main='<div class="orig-awards"><div class="orig-awards-bar"><a href="'+appHref('/awards')+'" class="orig-awards-logo"><i class="fas fa-trophy"></i><span>DAEGON AWARDS</span></a><nav><a class="active" href="'+appHref('/awards')+'">Home</a><a href="#">Categories</a><a href="#">Artists</a><a href="'+appHref('/stats')+'">Stats</a><a href="'+appHref('/about')+'">About</a></nav><div class="orig-awards-search"><i class="fas fa-search"></i><input placeholder="Search artists, songs..."></div></div><div class="orig-awards-body"><div class="orig-awards-intro"><h2>Daegon Music Awards</h2><p>Celebrating excellence in music across multiple genres and categories. Explore past editions, winners, and nominees.</p></div><div class="orig-editions">'+editions.map(y=>'<button data-award-year="'+y+'"><strong>'+y+'</strong><span>EDITION</span></button>').join('')+'</div></div></div>';
-  setMode(true);portalEl.innerHTML=shellHtml(main);setMeta('Daegon Awards','Daegon Music Awards.','/awards');
-  portalEl.querySelectorAll('[data-award-year]').forEach(b=>b.onclick=()=>{history.replaceState({},'',appHref('/awards')+'?year='+b.dataset.awardYear);renderAwardsYear(b.dataset.awardYear)});
+
+const AWARD_SHEET='1DNb6uYi6K231-fhrSt3XPlaag8eG9ZFVHhvSXyjWCuk';
+const AWARD_GIDS={2017:'0',2018:'912023648',2019:'221365296',2020:'1123138246',2021:'919977085',2022:'2065423547',2023:'1803569858',2024:'1350904783',2025:'1189047483'};
+const AWARD_YEARS=Object.keys(AWARD_GIDS).map(Number).sort((a,b)=>b-a);
+const awardCache=new Map(),awardInflight=new Map();
+let awardsAllPromise=null,awardsArtistsCache=null;
+const awardsPath=()=>cleanPath().replace(/\/+$/,'');
+const awardLink=(to,label,cls='')=>'<a class="'+cls+'" data-portal-link="'+to+'" href="'+appHref(to)+'">'+label+'</a>';
+const awardSlug=name=>String(name||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const awardArtistLink=name=>awardLink('/artist/'+awardSlug(name),esc(name||'Unknown'));
+const awardLoading='<div class="aw-loading" role="status"><span class="aw-spinner"></span>Loading awards...</div>';
+const awardBack=()=>awardLink('/awards','<i class="fas fa-arrow-left"></i> Back to Home','aw-back');
+const awardHeading=(title)=>'<div class="aw-heading"><h2>'+esc(title)+'</h2>'+awardBack()+'</div>';
+const awCell=c=>String(c?.v??c?.f??'').trim();
+async function awardFetchText(url){
+  const endpoints=[url,'https://api.allorigins.win/raw?url='+encodeURIComponent(url),'https://corsproxy.io/?'+encodeURIComponent(url)];
+  let error;
+  for(const endpoint of endpoints){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+    try{
+      const res=await fetch(endpoint,{signal:controller.signal});
+      if(!res.ok)throw Error('HTTP '+res.status);
+      const body=await res.text();
+      if(!body.includes('"table"'))throw Error('Invalid awards response');
+      return body;
+    }catch(e){error=e}finally{clearTimeout(timer)}
+  }
+  throw error||Error('Awards unavailable');
 }
-async function renderAwardsYear(year){
-  const datasets=await Promise.all(['songs','albums','artists'].map(loadWeekly));
-  const winners=datasets.map((d,i)=>{const id=['songs','albums','artists'][i];return{id,kind:charts[id].kind,list:aggregatePeriod(d,id,x=>x.startsWith(year+'-')).slice(0,5)}});
-  const main='<div class="orig-awards"><div class="orig-awards-bar"><a href="'+appHref('/awards')+'" class="orig-awards-logo"><i class="fas fa-trophy"></i><span>DAEGON AWARDS</span></a></div><div class="orig-awards-body"><div class="orig-awards-intro"><h2>Daegon Music Awards '+esc(year)+'</h2></div><div class="orig-award-winners">'+winners.map(w=>'<section><h3>'+esc(charts[w.id].title)+'</h3>'+w.list.map((x,i)=>'<div class="orig-record-row"><div class="orig-record-rank '+(i===0?'top':'')+'">'+(i+1)+'</div><div class="orig-record-main"><div class="orig-record-name">'+entityLink(x,w.kind)+'</div>'+(w.kind!=='artist'?'<div class="orig-record-artist">'+artistLink(x.artist||'')+'</div>':'')+'</div></div>').join('')+'</section>').join('')+'</div></div></div>';
-  setMode(true);portalEl.innerHTML=shellHtml(main);bindLinks();
+async function awardEdition(year){
+  year=Number(year);
+  if(awardCache.has(year))return awardCache.get(year);
+  if(awardInflight.has(year))return awardInflight.get(year);
+  if(!AWARD_GIDS[year])throw Error('Edition unavailable');
+  const p=(async()=>{
+    const url='https://docs.google.com/spreadsheets/d/'+AWARD_SHEET+'/gviz/tq?tq=select%20*&tqx=out:json&gid='+AWARD_GIDS[year];
+    const raw=await awardFetchText(url),json=JSON.parse(raw.slice(raw.indexOf('{'),raw.lastIndexOf('}')+1));
+    const categories={},order=[];
+    for(const r of (json.table?.rows||[]).slice(1)){
+      const c=r.c||[],category=awCell(c[0]),item=awCell(c[1]),artist=awCell(c[2]),feature=awCell(c[3]),status=awCell(c[4]);
+      if(!category)continue;
+      if(!categories[category]){categories[category]=[];order.push(category)}
+      categories[category].push({category,item,artist,feature,status:/win/i.test(status)?'Winner':'Nominated',year});
+    }
+    const result={year,categories,order};awardCache.set(year,result);return result;
+  })();
+  awardInflight.set(year,p);
+  try{return await p}finally{awardInflight.delete(year)}
+}
+async function awardAll(){
+  if(!awardsAllPromise){
+    awardsAllPromise=(async()=>{
+      // Limit concurrent Google Sheets requests to avoid flooding slow mobile connections.
+      let next=0;const results=[];
+      await Promise.all(Array.from({length:3},async()=>{
+        while(next<AWARD_YEARS.length){
+          const year=AWARD_YEARS[next++];
+          try{results.push(await awardEdition(year))}catch(e){console.warn('Awards edition '+year,e)}
+        }
+      }));
+      return results.sort((a,b)=>b.year-a.year);
+    })().finally(()=>{awardsAllPromise=null});
+  }
+  return awardsAllPromise;
+}
+function awardArtists(editions){
+  if(awardsArtistsCache&&awardsArtistsCache.key===editions.map(x=>x.year).join(','))return awardsArtistsCache.list;
+  const artists=new Map();
+  for(const ed of editions)for(const [category,nominees] of Object.entries(ed.categories))
+    for(const n of nominees){
+      if(!n.artist)continue;
+      const add=(name,role)=>{
+        name=name.trim();if(!name)return;
+        const key=name.toLocaleLowerCase();let a=artists.get(key);
+        if(!a){a={name,wins:0,nominations:0,entries:[],seen:new Set()};artists.set(key,a)}
+        const unique=[n.year,category,n.item,role].join('|');
+        if(a.seen.has(unique))return;
+        a.seen.add(unique);a.nominations++;if(n.status==='Winner')a.wins++;
+        a.entries.push({...n,role});
+      };
+      add(n.artist,'Main Artist');
+      if(n.feature)n.feature.split(',').forEach(x=>add(x,'Featured Artist'));
+    }
+  const list=[...artists.values()].sort((a,b)=>b.nominations-a.nominations||b.wins-a.wins||a.name.localeCompare(b.name));
+  awardsArtistsCache={key:editions.map(x=>x.year).join(','),list};
+  return list;
+}
+function awardHeader(active){
+  const nav=[['Home','/awards'],['Categories','/awards/categories'],['Artists','/awards/artists'],['Stats','/awards/stats'],['About','/awards/about']];
+  return '<div class="orig-awards-bar">'+awardLink('/awards','<i class="fas fa-trophy"></i><span>DAEGON AWARDS</span>','orig-awards-logo')+
+    '<nav aria-label="Awards navigation">'+nav.map(([label,url])=>awardLink(url,label,url===active?'active':'')).join('')+'</nav>'+
+    '<div class="orig-awards-search"><i class="fas fa-search"></i><input id="awSearch" type="search" autocomplete="off" aria-label="Search awards" placeholder="Search artists, songs..."><div class="aw-search-results" id="awResults" hidden></div></div></div>';
+}
+function awardFrame(active,content){
+  return '<div class="orig-awards">'+awardHeader(active)+'<div class="orig-awards-body"><div id="awContent">'+content+'</div></div></div>';
+}
+function awardCardList(data){
+  const noFeature=['Artist of the Year','Best New Artist'];
+  return (data.order.length?data.order:Object.keys(data.categories)).map(cat=>{
+    const sorted=[...(data.categories[cat]||[])].sort((a,b)=>(b.status==='Winner')-(a.status==='Winner')||a.artist.localeCompare(b.artist));
+    if(!sorted.length)return '';
+    return '<section class="aw-category"><button class="aw-category-toggle" type="button" aria-expanded="true"><span>'+esc(cat)+'</span><span class="aw-plus">−</span></button><div class="aw-nominees">'+sorted.map(n=>
+      '<div class="aw-nominee '+(n.status==='Winner'?'winner':'')+'"><div class="aw-avatar" data-aw-artist="'+escAttr(n.artist)+'"><i class="fas fa-user"></i></div><div class="aw-nominee-info"><div class="aw-nominee-name">'+awardArtistLink(n.artist)+'</div>'+
+      (n.item?'<div class="aw-item">'+esc(n.item)+'</div>':'')+
+      (n.feature&&!noFeature.includes(cat)?'<div class="aw-feature">feat. '+n.feature.split(',').map(x=>awardArtistLink(x.trim())).join(', ')+'</div>':'')+
+      '</div><span class="aw-status '+(n.status==='Winner'?'win':'')+'">'+(n.status==='Winner'?'Winner':'Nominated')+'</span></div>').join('')+'</div></section>';
+  }).join('');
+}
+function awardHome(){
+  return '<div class="orig-awards-intro"><h2>Daegon Music Awards</h2><p>Celebrating excellence in music across multiple genres and categories. Explore past editions, winners, and nominees.</p></div>'+
+    '<div class="orig-editions">'+AWARD_YEARS.map(y=>awardLink('/awards/'+y,'<strong>'+y+'</strong><span>EDITION</span>','aw-edition')).join('')+'</div>';
+}
+function awardCategories(all){
+  return awardHeading('All Categories')+all.map(ed=>
+    '<section class="aw-category"><button type="button" class="aw-category-toggle" aria-expanded="true"><span>'+ed.year+' Edition</span><span class="aw-plus">−</span></button><div class="aw-category-grid">'+Object.keys(ed.categories).sort().map(cat=>
+    awardLink('/awards/'+ed.year,esc(cat),'aw-category-link')).join('')+'</div></section>').join('');
+}
+function awardArtistsView(all){
+  return awardHeading('All Artists')+'<div class="aw-artist-grid">'+awardArtists(all).map(a=>
+    awardLink('/artist/'+awardSlug(a.name),'<span class="aw-artist-photo" data-aw-artist="'+escAttr(a.name)+'"><i class="fas fa-user"></i></span><span class="aw-artist-name">'+esc(a.name)+'</span><span class="aw-artist-totals"><span><b>'+a.wins+'</b> wins</span><span><b>'+a.nominations+'</b> noms</span></span>','aw-artist-card')
+  ).join('')+'</div>';
+}
+function awardStatsView(all){
+  const artists=awardArtists(all);
+  const mostWins=[...artists].sort((a,b)=>b.wins-a.wins||b.nominations-a.nominations).slice(0,10);
+  const mostNoms=[...artists].slice(0,10);
+  const totalWins=artists.reduce((sum,a)=>sum+a.wins,0),totalNoms=artists.reduce((sum,a)=>sum+a.nominations,0);
+  const ranked=(arr)=>'<div class="aw-rank-list">'+arr.map((a,i)=>
+    awardLink('/artist/'+awardSlug(a.name),'<b class="aw-rank-number">'+(i+1)+'</b><span class="aw-rank-name">'+esc(a.name)+'</span><small>'+a.wins+' wins · '+a.nominations+' noms</small>','aw-rank-row')).join('')+'</div>';
+  return awardHeading('Award Statistics')+'<div class="aw-stat-cards">'+[[artists.length,'Total Artists'],[totalWins,'Total Wins'],[totalNoms,'Total Nominations']].map(x=>
+    '<div><strong>'+x[0].toLocaleString('en-US')+'</strong><span>'+x[1]+'</span></div>').join('')+'</div><div class="aw-stat-lists"><section><h3><i class="fas fa-trophy"></i> Most Wins</h3>'+ranked(mostWins)+'</section><section><h3><i class="fas fa-list"></i> Most Nominations</h3>'+ranked(mostNoms)+'</section></div>';
+}
+function awardAbout(){
+  return awardHeading('About Daegon Awards')+'<div class="aw-about"><h3>Our Mission</h3><p>The Daegon Awards were established to recognize and celebrate exceptional talent in the music industry. Our goal is to honor artists, producers, and contributors who have made significant impacts through their creative work.</p><h3>Selection Process</h3><p>Nominees and winners are documented in the official Daegon Awards editions. Consult the source sheets for the recorded results.</p><h3>Data Source</h3><p>All award data is sourced from publicly available Google Sheets that document the nominations and winners for each edition of the Daegon Awards from 2017 to 2025.</p><a class="aw-back" href="https://docs.google.com/spreadsheets/d/'+AWARD_SHEET+'" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> View Data Source</a></div>';
+}
+function awardBindInteractions(){
+  portalEl.querySelectorAll('.aw-category-toggle').forEach(button=>button.onclick=()=>{
+    const content=button.nextElementSibling,open=button.getAttribute('aria-expanded')==='true';
+    button.setAttribute('aria-expanded',String(!open));content.hidden=open;
+    button.querySelector('.aw-plus').textContent=open?'+':'−';
+  });
+}
+function awardEnableSearch(){
+  const input=portalEl.querySelector('#awSearch'),results=portalEl.querySelector('#awResults');
+  if(!input||!results)return;
+  let timer=0;
+  input.oninput=()=>{
+    clearTimeout(timer);const q=input.value.trim().toLowerCase();
+    if(q.length<2){results.hidden=true;return}
+    timer=setTimeout(async()=>{
+      const all=await awardAll();
+      if(!input.isConnected||input.value.trim().toLowerCase()!==q)return;
+      const found=[],seen=new Set();
+      for(const a of awardArtists(all))if(a.name.toLowerCase().includes(q)){
+        found.push({name:a.name,sub:a.wins+' wins · '+a.nominations+' nominations',to:'/artist/'+awardSlug(a.name)});
+      }
+      for(const ed of all)for(const nominees of Object.values(ed.categories))for(const n of nominees){
+        const key=n.item+'|'+n.artist;if(!n.item||!n.item.toLowerCase().includes(q)||seen.has(key))continue;
+        seen.add(key);found.push({name:n.item,sub:n.artist+' · '+ed.year,to:'/artist/'+awardSlug(n.artist)});
+      }
+      results.innerHTML=found.slice(0,20).map(r=>awardLink(r.to,'<strong>'+esc(r.name)+'</strong><small>'+esc(r.sub)+'</small>','aw-search-result')).join('')||'<div class="aw-search-empty">No results found</div>';
+      results.hidden=false;bindLinks();
+    },180);
+  };
+  input.onkeydown=e=>{if(e.key==='Escape')results.hidden=true};
+  document.addEventListener('click',e=>{if(input.isConnected&&!e.target.closest('.orig-awards-search'))results.hidden=true},{signal:awardSearchSignal.signal});
+}
+let awardSearchSignal=new AbortController();
+async function renderAwards(){
+  awardSearchSignal.abort();awardSearchSignal=new AbortController();
+  const parts=routeParts(),section=parts[1]||'',active=['categories','artists','stats','about'].includes(section)?'/awards/'+section:'/awards';
+  const year=/^\d{4}$/.test(section)?Number(section):null;
+  const title=year?'Daegon Awards '+year:section==='categories'?'All Categories':section==='artists'?'All Artists':section==='stats'?'Award Statistics':section==='about'?'About Daegon Awards':'Daegon Music Awards';
+  let initial=year?awardHeading(title)+awardLoading:section==='about'?awardAbout():!section?awardHome():awardHeading(title)+awardLoading;
+  if(year&&!AWARD_GIDS[year])initial=awardHeading(title)+'<p>Edition not available.</p>';
+  setMode(true);portalEl.innerHTML=shellHtml(awardFrame(active,initial));setMeta(title,'Daegon Music Awards.','/awards'+(section?'/'+section:''));
+  awardEnableSearch();awardBindInteractions();
+  if(!section||section==='about'||(year&&!AWARD_GIDS[year]))return;
+  const route=awardsPath();
+  try{
+    const data=year?await awardEdition(year):await awardAll();
+    if(route!==awardsPath())return;
+    const content=portalEl.querySelector('#awContent');if(!content)return;
+    content.innerHTML=year?awardHeading(title)+awardCardList(data):
+      section==='categories'?awardCategories(data):section==='artists'?awardArtistsView(data):
+      section==='stats'?awardStatsView(data):awardHeading(title)+'<p>Page not found.</p>';
+    awardBindInteractions();bindLinks();
+  }catch(err){
+    if(route!==awardsPath())return;
+    const content=portalEl.querySelector('#awContent');
+    if(content)content.innerHTML=awardHeading(title)+'<div class="aw-error">Unable to load awards data. <button type="button" id="awRetry">Try again</button></div>';
+    const retry=portalEl.querySelector('#awRetry');if(retry)retry.onclick=renderAwards;
+  }
 }
 
 async function renderBattle(){
@@ -2285,6 +2466,7 @@ function closeMenuOnNavigationIntent(e){
   closePortalMenu();
 }
 function onDocumentClick(e){
+  if(e.defaultPrevented)return;
   const a=e.target.closest('a');
   if(!a)return;
   const href=a.getAttribute('href')||'';
