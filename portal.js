@@ -167,6 +167,12 @@ function go(path,replace=false){
   const target=appHref(path);
   history[replace?'replaceState':'pushState']({},'',target);
   scrollPageTop();
+  // Weekly charts are rendered by the chart router, not the portal router.
+  // Without this branch, the global Daegon 100 link shows the portal 404 until refresh.
+  if(activateWeeklyIfNeeded()){
+    setTimeout(scrollPageTop,80);
+    return;
+  }
   const job=renderRoute();
   Promise.resolve(job).finally(scrollPageTop);
 }
