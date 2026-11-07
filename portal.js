@@ -2072,32 +2072,128 @@ async function renderGoat(chartSeg){
   draw();
 }
 
+const CHART_BEAT_BLOGS={
+  hot100:{title:'Daegon 100 Songs',gid:'1019123057',chart:'songs'},
+  artists:{title:'Top 50 Artists',gid:'157219648',chart:'artists'},
+  top100Albums:{title:'Top 100 Albums',gid:'677909186',chart:'albums'}
+};
+const chartBeatCache=new Map();
+function beatTimestamp(value){
+  const match=String(value||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(match)return Date.UTC(+match[3],+match[2]-1,+match[1]);
+  const n=Date.parse(value);return Number.isFinite(n)?n:0;
+}
+function beatDateParts(value){
+  const timestamp=beatTimestamp(value);
+  if(!timestamp)return {year:'Other',month:'Other'};
+  const d=new Date(timestamp);
+  return {year:String(d.getUTCFullYear()),month:d.toLocaleDateString('en-US',{month:'long',timeZone:'UTC'})};
+}
+function beatClosestWeek(value,dates){
+  if(!dates||!dates.length)return '';
+  const target=beatTimestamp(value);
+  if(!target)return dates[dates.length-1];
+  return dates.reduce((best,next)=>Math.abs(beatTimestamp(next)-target)<Math.abs(beatTimestamp(best)-target)?next:best);
+}
+async function loadChartBeatPosts(blog){
+  if(chartBeatCache.has(blog))return chartBeatCache.get(blog);
+  const config=CHART_BEAT_BLOGS[blog];
+  const promise=(async()=>{
+    const rows=await fetchCsv(PORTAL_SHEET+config.gid);
+    if(!rows.length)return [];
+    const header=rows[0].map(x=>String(x||'').toLocaleLowerCase().trim());
+    const col=(names)=>header.findIndex(x=>names.includes(x));
+    const cols={date:col(['date','data']),title:col(['title','título']),text:col(['text','conteúdo']),artist:col(['artist','artista']),image:col(['image','imagem','photo','foto']),link:col(['chartlink'])};
+    if(cols.title<0||cols.text<0)throw new Error('Chart Beat spreadsheet is missing Title or Text columns');
+    return rows.slice(1).map((r,i)=>({
+      key:i,title:r[cols.title]||'Untitled',date:cols.date>=0?r[cols.date]||'':'',
+      text:r[cols.text]||'',artist:cols.artist>=0?r[cols.artist]||'':'',
+      image:cols.image>=0?r[cols.image]||'':'',chartLink:cols.link>=0?r[cols.link]||'':''
+    })).filter(p=>p.title.trim()||p.text.trim()).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date)||b.key-a.key);
+  })();
+  chartBeatCache.set(blog,promise);
+  promise.catch(()=>chartBeatCache.delete(blog));
+  return promise;
+}
 async function renderChartBeat(){
   loading('Chart Beat');
-  const ids=['songs','albums','artists','radioSongs','streamingSongs','digitalSongsSales','topStreamingAlbums','topAlbumSales'];
-  const data=await Promise.all(ids.map(async id=>{try{return await loadWeekly(id)}catch{return null}}));
-  let active='songs',date=(data[0]?.dates||[]).slice(-1)[0]||'';
-  const draw=()=>{
-    const d=data[ids.indexOf(active)],dates=[...(d?.dates||[])].reverse(),entries=d?.entriesByDate?.[date]||[],no1=entries[0],debuts=entries.filter(x=>x.diff==='NEW').slice(0,5);
-    const mover=[...entries].filter(x=>String(x.diff).startsWith('▲')).sort((a,b)=>toInt(String(b.diff).slice(1))-toInt(String(a.diff).slice(1)))[0];
-    const top10=entries.slice(0,10),returners=entries.filter(x=>x.diff==='RE').slice(0,5),steady=entries.filter(x=>String(x.diff)==='0').slice(0,5);
-    const article='<article class="orig-beat-article">'+
-      '<div class="editorial-kicker">Weekly analysis</div>'+
-      (no1?'<h2>'+esc(no1.name)+' leads the '+esc(charts[active].title)+'</h2><p><strong>'+esc(no1.artist||no1.name)+'</strong> holds No. 1 for the chart week of '+fmtDate(date)+'. The chart below is read from the same weekly dataset used throughout the archive, so movement and historical runs remain directly traceable to the source week.</p>':'')+
-      (top10.length?'<h3>Inside the Top 10</h3><p>The week’s Top 10 contains '+top10.length+' entries. '+top10.slice(0,3).map((x,i)=>(i+1)+'. <strong>'+esc(portalText(x.name))+'</strong>').join(' · ')+' lead the upper tier.</p>':'')+
-      (debuts.length?'<h3>New entries</h3><p>'+debuts.map(x=>'<strong>'+esc(portalText(x.name))+'</strong>').join(', ')+' '+(debuts.length===1?'makes':'make')+' a first chart appearance this week.</p>':'')+
-      (returners.length?'<h3>Returns</h3><p>'+returners.map(x=>'<strong>'+esc(portalText(x.name))+'</strong>').join(', ')+' return to the ranking after appearing in an earlier week.</p>':'')+
-      (mover?'<h3>Biggest upward move</h3><p><strong>'+esc(portalText(mover.name))+'</strong> posts the strongest climb among the entries shown this week ('+esc(mover.diff)+').</p>':'')+
-      (steady.length?'<h3>Holding position</h3><p>'+steady.slice(0,3).map(x=>'<strong>'+esc(portalText(x.name))+'</strong>').join(', ')+' remain at the same rank as the previous chart week.</p>':'')+
-      '<div class="beat-method-note"><strong>About Chart Beat:</strong> this page summarizes movements already present in the Daegon weekly chart. It does not add a separate editorial score to the rankings. <a href="'+appHref('/methodology')+'">Read the methodology →</a></div>'+
-    '</article>';
-    const main='<div class="orig-beat-layout"><aside class="orig-beat-side"><h2>Chart Beat</h2><div class="orig-beat-charts">'+ids.map(id=>'<button data-beat-chart="'+id+'" class="'+(id===active?'active':'')+'"><i class="fas '+(charts[id].icon||'fa-chart-bar')+'"></i>'+esc(charts[id].title)+'</button>').join('')+'</div><h3>Weeks</h3><div class="orig-beat-weeks">'+dates.slice(0,80).map(x=>'<button data-beat-date="'+x+'" class="'+(x===date?'active':'')+'">'+fmtDate(x)+'</button>').join('')+'</div></aside><main class="orig-beat-main"><div class="orig-beat-title"><h1>Chart Beat</h1><p>'+esc(charts[active].title)+' · '+fmtDate(date)+'</p></div><div class="orig-beat-actions"><a href="'+appHref(chartPath(active,date))+'" class="orig-view"><i class="fas fa-chart-bar"></i> View Raw Chart</a></div>'+article+'</main></div>';
-    setMode(true);portalEl.innerHTML=shellHtml(main);setMeta('Chart Beat','Weekly analysis of No. 1s, debuts, returns and movement across Daegon Charts.','/chart-beat');bindLinks();
-    portalEl.querySelectorAll('[data-beat-chart]').forEach(b=>b.onclick=()=>{active=b.dataset.beatChart;const dd=data[ids.indexOf(active)];date=(dd?.dates||[]).slice(-1)[0]||'';draw()});
-    portalEl.querySelectorAll('[data-beat-date]').forEach(b=>b.onclick=()=>{date=b.dataset.beatDate;draw()});
+  const requested=routeParts()[1];
+  let active=CHART_BEAT_BLOGS[requested]?requested:'hot100';
+  let selectedYear='',selectedMonth='';
+  let openYears=new Set();
+  let sequence=0;
+  const render=async()=>{
+    const serial=++sequence;
+    setMode(true);
+    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="beat-ref-loading">Loading articles…</div></div>');
+    setMeta('Chart Beat','Stories, analysis and insights from the charts.','/chart-beat');
+    let posts;
+    try{posts=await loadChartBeatPosts(active)}
+    catch(error){
+      if(serial!==sequence)return;
+      portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="portal-empty">Unable to load Chart Beat articles. '+esc(error.message||'')+' <button type="button" id="beatRetry">Try again</button></div></div>');
+      portalEl.querySelector('#beatRetry').onclick=()=>{chartBeatCache.delete(active);render()};
+      return;
+    }
+    if(serial!==sequence)return;
+    const config=CHART_BEAT_BLOGS[active];
+    let years=new Map();
+    for(const p of posts){
+      const {year,month}=beatDateParts(p.date);
+      if(!years.has(year))years.set(year,new Map());
+      const months=years.get(year);
+      if(!months.has(month))months.set(month,[]);
+      months.get(month).push(p);
+    }
+    const activePosts=posts.filter(p=>{
+      const d=beatDateParts(p.date);
+      return (!selectedYear||d.year===selectedYear)&&(!selectedMonth||d.month===selectedMonth);
+    });
+    const archive='<aside class="beat-ref-archive"><h2>Archive</h2><button type="button" data-beat-all class="'+(!selectedYear?'active':'')+'">All articles</button>'+
+      [...years].sort((a,b)=>Number(b[0])-Number(a[0])).map(([year,months])=>
+        '<div class="beat-ref-archive-year"><button type="button" data-beat-year="'+escAttr(year)+'" aria-expanded="'+openYears.has(year)+'"><span>'+esc(year)+'</span><i class="fas fa-chevron-'+(openYears.has(year)?'up':'down')+'"></i></button>'+
+        (openYears.has(year)?'<div class="beat-ref-months">'+[...months].map(([month,items])=>'<button type="button" data-beat-month="'+escAttr(year+'|'+month)+'" class="'+(selectedYear===year&&selectedMonth===month?'active':'')+'">'+esc(month)+' <span>('+items.length+')</span></button>').join('')+'</div>':'')+'</div>'
+      ).join('')+'</aside>';
+    const article=(p)=>{
+      const photo=/^https:\/\//i.test(p.image)?'<img class="beat-ref-cover" src="'+escAttr(p.image)+'" alt="" loading="lazy">':
+        (p.artist?'<div class="beat-ref-cover beat-ref-artist" data-portal-image data-kind="artist" data-name="'+escAttr(p.artist)+'" data-artist="'+escAttr(p.artist)+'"></div>':'');
+      const formattedText=esc(p.text).replace(/(#?\d+(?:[.,]\d+)?(?:[KMBkmb])?)/g,'<em>$1</em>').replace(/\r?\n/g,'<br>');
+      const artist=p.artist?'<div class="beat-ref-artist-credit"><i class="fas fa-user"></i> '+artistLink(p.artist)+'</div>':'';
+      const date=beatClosestWeek(p.date,(beatWeeklyData?.[active]?.dates)||[]);
+      return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
+        (date?'<a class="beat-ref-related" href="'+appHref(chartPath(config.chart,date))+'" data-portal-link="'+escAttr(chartPath(config.chart,date))+'"><i class="fas fa-chart-bar"></i> View the related weekly chart</a>':'')+'</article>';
+    };
+    const tabs='<nav class="beat-ref-tabs" aria-label="Chart Beat categories">'+Object.entries(CHART_BEAT_BLOGS).map(([key,c])=>'<a href="'+appHref('/chart-beat/'+key)+'" data-beat-blog="'+key+'" class="'+(key===active?'active':'')+'" '+(key===active?'aria-current="page"':'')+'>'+esc(c.title)+'</a>').join('')+'</nav>';
+    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.map(article).join(''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
+    setMeta(config.title+' — Chart Beat','Stories, analysis and insights from the charts.','/chart-beat/'+active);
+    bindLinks();
+    portalEl.querySelectorAll('[data-beat-blog]').forEach(el=>el.onclick=e=>{
+      e.preventDefault();
+      if(active===el.dataset.beatBlog)return;
+      active=el.dataset.beatBlog;selectedYear='';selectedMonth='';openYears=new Set();
+      history.pushState({},'',appHref('/chart-beat/'+active));render();window.scrollTo({top:0,behavior:'smooth'});
+    });
+    portalEl.querySelector('[data-beat-all]').onclick=()=>{selectedYear='';selectedMonth='';openYears=new Set();render()};
+    portalEl.querySelectorAll('[data-beat-year]').forEach(el=>el.onclick=()=>{
+      const year=el.dataset.beatYear;
+      if(openYears.has(year))openYears.delete(year);else openYears.add(year);
+      selectedYear=year;selectedMonth='';render();
+    });
+    portalEl.querySelectorAll('[data-beat-month]').forEach(el=>el.onclick=()=>{
+      const [year,month]=el.dataset.beatMonth.split('|');selectedYear=year;selectedMonth=month;
+      openYears.add(year);render();
+    });
+    hydratePortalImages();
   };
-  draw();
+  // Dates are loaded independently so the editorial archive is not blocked by weekly-chart fetches.
+  const beatWeeklyData={};
+  render();
+  await Promise.all(Object.entries(CHART_BEAT_BLOGS).map(async ([blog,c])=>{
+    try{beatWeeklyData[blog]=await loadWeekly(c.chart)}catch{}
+  }));
+  if(routeParts()[0]==='chart-beat')render();
 }
+
 
 
 const AWARD_SHEET='1DNb6uYi6K231-fhrSt3XPlaag8eG9ZFVHhvSXyjWCuk';
