@@ -2099,7 +2099,24 @@ async function loadChartBeatPosts(blog){
   if(chartBeatCache.has(blog))return chartBeatCache.get(blog);
   const config=CHART_BEAT_BLOGS[blog];
   const promise=(async()=>{
-    const rows=await fetchCsv(PORTAL_SHEET+config.gid);
+    // Article bodies may contain quoted line breaks: do not use the weekly row-by-line CSV parser.
+    const raw=await fetchText(PORTAL_SHEET+config.gid);
+    const rows=[];let row=[],field='',quoted=false;
+    for(let i=0;i<raw.length;i++){
+      const ch=raw[i];
+      if(ch==='"'){
+        if(quoted&&raw[i+1]==='"'){field+='"';i++;}
+        else quoted=!quoted;
+      }else if(ch===','&&!quoted){row.push(field);field='';}
+      else if((ch==='\n'||ch==='\r')&&!quoted){
+        if(ch==='\r'&&raw[i+1]==='\n')i++;
+        row.push(field);field='';
+        if(row.some(cell=>cell!==''))rows.push(row);
+        row=[];
+      }else field+=ch;
+    }
+    row.push(field);
+    if(row.some(cell=>cell!==''))rows.push(row);
     if(!rows.length)return [];
     const header=rows[0].map(x=>String(x||'').toLocaleLowerCase().trim());
     const col=(names)=>header.findIndex(x=>names.includes(x));
