@@ -2078,7 +2078,7 @@ const CHART_BEAT_BLOGS={
   top100Albums:{title:'Top 100 Albums',gid:'677909186',chart:'albums'}
 };
 const chartBeatCache=new Map();
-const CHART_BEAT_CACHE_VERSION='v3';
+const CHART_BEAT_CACHE_VERSION='v4';
 const CHART_BEAT_CACHE_TTL=6*60*60*1000;
 function beatCachedPosts(blog){
   try{
@@ -2124,7 +2124,20 @@ async function loadChartBeatPosts(blog){
   if(stored){const ready=Promise.resolve(stored);chartBeatCache.set(blog,ready);return ready;}
   const config=CHART_BEAT_BLOGS[blog];
   const promise=(async()=>{
-    // Article bodies may contain quoted line breaks: do not use the weekly row-by-line CSV parser.
+    // Published editorial articles are static. Visitors never wait for writing/generation.
+    try{
+      const response=await fetch(appHref('/data/chart-beat-editorial.json'),{cache:'force-cache'});
+      if(response.ok){
+        const prepared=await response.json();
+        const entries=prepared?.posts?.[blog];
+        if(Array.isArray(entries)&&entries.length){
+          const posts=entries.map((p,i)=>({...p,key:p.key??i})).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date));
+          beatStorePosts(blog,posts);
+          return posts;
+        }
+      }
+    }catch(error){console.warn('Chart Beat prepared articles unavailable:',error)}
+    // Legacy articles may contain quoted line breaks: do not use the weekly row-by-line CSV parser.
     const raw=await fetchText(PORTAL_SHEET+config.gid);
     const rows=[];let row=[],field='',quoted=false;
     for(let i=0;i<raw.length;i++){
