@@ -2082,13 +2082,13 @@ const CHART_BEAT_CACHE_VERSION='v3';
 const CHART_BEAT_CACHE_TTL=6*60*60*1000;
 function beatCachedPosts(blog){
   try{
-    const cached=JSON.parse(sessionStorage.getItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog)||'null');
+    const cached=JSON.parse(localStorage.getItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog)||'null');
     if(cached&&Date.now()-cached.time<CHART_BEAT_CACHE_TTL&&Array.isArray(cached.posts))return cached.posts;
   }catch{}
   return null;
 }
 function beatStorePosts(blog,posts){
-  try{sessionStorage.setItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog,JSON.stringify({time:Date.now(),posts}));}catch{}
+  try{localStorage.setItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog,JSON.stringify({time:Date.now(),posts}));}catch{}
 }
 function beatParagraphs(text){
   // Preserve the authored narrative rather than reconstructing a stream of chart statistics.
@@ -2205,9 +2205,13 @@ async function renderChartBeat(){
         (p.artist?'<div class="beat-ref-cover beat-ref-artist" data-portal-image data-kind="artist" data-name="'+escAttr(p.artist)+'" data-artist="'+escAttr(p.artist)+'"></div>':'');
       const formattedText=beatParagraphs(p.text);
       const artist=p.artist?'<div class="beat-ref-artist-credit"><i class="fas fa-user"></i> '+artistLink(p.artist)+'</div>':'';
-      const date=''; // Do not block article reading on full weekly chart downloads.
+      const related=String(p.chartLink||'').trim();
+      const validRelated=/^https:\/\//i.test(related)||/^\/chart\//i.test(related);
+      const chartHref=validRelated?(related.startsWith('/')?appHref(related):related):'';
+      const internalRelated=chartHref.startsWith('/');
+      const relatedLink=chartHref?'<a class="beat-ref-related" href="'+escAttr(chartHref)+'" '+(internalRelated?'data-portal-link="'+escAttr(related)+'"':'target="_blank" rel="noopener noreferrer"')+'><i class="fas fa-chart-bar"></i> View the related weekly chart</a>':'';
       return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
-        (date?'<a class="beat-ref-related" href="'+appHref(chartPath(config.chart,date))+'" data-portal-link="'+escAttr(chartPath(config.chart,date))+'"><i class="fas fa-chart-bar"></i> View the related weekly chart</a>':'')+'</article>';
+        relatedLink+'</article>';
     };
     const tabs='<nav class="beat-ref-tabs" aria-label="Chart Beat categories">'+Object.entries(CHART_BEAT_BLOGS).map(([key,c])=>'<a href="'+appHref('/chart-beat/'+key)+'" data-beat-blog="'+key+'" class="'+(key===active?'active':'')+'" '+(key===active?'aria-current="page"':'')+'>'+esc(c.title)+'</a>').join('')+'</nav>';
     portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.slice(0,visibleCount).map(article).join('')+(activePosts.length>visibleCount?'<button class="beat-ref-more" id="beatMore" type="button">Load more articles ('+(activePosts.length-visibleCount)+' remaining)</button>':''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
