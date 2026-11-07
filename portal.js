@@ -2078,6 +2078,29 @@ const CHART_BEAT_BLOGS={
   top100Albums:{title:'Top 100 Albums',gid:'677909186',chart:'albums'}
 };
 const chartBeatCache=new Map();
+const CHART_BEAT_CACHE_VERSION='v3';
+const CHART_BEAT_CACHE_TTL=6*60*60*1000;
+function beatCachedPosts(blog){
+  try{
+    const cached=JSON.parse(sessionStorage.getItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog)||'null');
+    if(cached&&Date.now()-cached.time<CHART_BEAT_CACHE_TTL&&Array.isArray(cached.posts))return cached.posts;
+  }catch{}
+  return null;
+}
+function beatStorePosts(blog,posts){
+  try{sessionStorage.setItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog,JSON.stringify({time:Date.now(),posts}));}catch{}
+}
+function beatParagraphs(text){
+  // Preserve the authored narrative rather than reconstructing a stream of chart statistics.
+  const safe=String(text||'').replace(/\r/g,'').trim();
+  if(!safe)return '<p>Full article coming soon.</p>';
+  const paragraphs=safe.split(/\n\s*\n+/).map(p=>p.trim()).filter(Boolean);
+  return paragraphs.map(p=>{
+    const lines=p.split('\n').map(x=>x.trim()).filter(Boolean);
+    const content=lines.map(line=>esc(line)).join(' ');
+    return '<p>'+content.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')+'</p>';
+  }).join('');
+}
 function beatTimestamp(value){
   const match=String(value||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(match)return Date.UTC(+match[3],+match[2]-1,+match[1]);
@@ -2097,6 +2120,8 @@ function beatClosestWeek(value,dates){
 }
 async function loadChartBeatPosts(blog){
   if(chartBeatCache.has(blog))return chartBeatCache.get(blog);
+  const stored=beatCachedPosts(blog);
+  if(stored){const ready=Promise.resolve(stored);chartBeatCache.set(blog,ready);return ready;}
   const config=CHART_BEAT_BLOGS[blog];
   const promise=(async()=>{
     // Article bodies may contain quoted line breaks: do not use the weekly row-by-line CSV parser.
@@ -2122,11 +2147,13 @@ async function loadChartBeatPosts(blog){
     const col=(names)=>header.findIndex(x=>names.includes(x));
     const cols={date:col(['date','data']),title:col(['title','título']),text:col(['text','conteúdo']),artist:col(['artist','artista']),image:col(['image','imagem','photo','foto']),link:col(['chartlink'])};
     if(cols.title<0||cols.text<0)throw new Error('Chart Beat spreadsheet is missing Title or Text columns');
-    return rows.slice(1).map((r,i)=>({
+    const posts=rows.slice(1).map((r,i)=>({
       key:i,title:r[cols.title]||'Untitled',date:cols.date>=0?r[cols.date]||'':'',
       text:r[cols.text]||'',artist:cols.artist>=0?r[cols.artist]||'':'',
       image:cols.image>=0?r[cols.image]||'':'',chartLink:cols.link>=0?r[cols.link]||'':''
     })).filter(p=>p.title.trim()||p.text.trim()).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date)||b.key-a.key);
+    beatStorePosts(blog,posts);
+    return posts;
   })();
   chartBeatCache.set(blog,promise);
   promise.catch(()=>chartBeatCache.delete(blog));
@@ -2138,11 +2165,13 @@ async function renderChartBeat(){
   let active=CHART_BEAT_BLOGS[requested]?requested:'hot100';
   let selectedYear='',selectedMonth='';
   let openYears=new Set();
-  let sequence=0;
+  let sequence=0,visibleCount=12;
   const render=async()=>{
     const serial=++sequence;
     setMode(true);
-    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="beat-ref-loading">Loading articles…</div></div>');
+    if(!chartBeatCache.has(active)&&!beatCachedPosts(active)){
+      portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="beat-ref-loading">Loading articles…</div></div>');
+    }
     setMeta('Chart Beat','Stories, analysis and insights from the charts.','/chart-beat');
     let posts;
     try{posts=await loadChartBeatPosts(active)}
@@ -2174,41 +2203,37 @@ async function renderChartBeat(){
     const article=(p)=>{
       const photo=/^https:\/\//i.test(p.image)?'<img class="beat-ref-cover" src="'+escAttr(p.image)+'" alt="" loading="lazy">':
         (p.artist?'<div class="beat-ref-cover beat-ref-artist" data-portal-image data-kind="artist" data-name="'+escAttr(p.artist)+'" data-artist="'+escAttr(p.artist)+'"></div>':'');
-      const formattedText=esc(p.text).replace(/(#?\d+(?:[.,]\d+)?(?:[KMBkmb])?)/g,'<em>$1</em>').replace(/\r?\n/g,'<br>');
+      const formattedText=beatParagraphs(p.text);
       const artist=p.artist?'<div class="beat-ref-artist-credit"><i class="fas fa-user"></i> '+artistLink(p.artist)+'</div>':'';
-      const date=beatClosestWeek(p.date,(beatWeeklyData?.[active]?.dates)||[]);
+      const date=''; // Do not block article reading on full weekly chart downloads.
       return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
         (date?'<a class="beat-ref-related" href="'+appHref(chartPath(config.chart,date))+'" data-portal-link="'+escAttr(chartPath(config.chart,date))+'"><i class="fas fa-chart-bar"></i> View the related weekly chart</a>':'')+'</article>';
     };
     const tabs='<nav class="beat-ref-tabs" aria-label="Chart Beat categories">'+Object.entries(CHART_BEAT_BLOGS).map(([key,c])=>'<a href="'+appHref('/chart-beat/'+key)+'" data-beat-blog="'+key+'" class="'+(key===active?'active':'')+'" '+(key===active?'aria-current="page"':'')+'>'+esc(c.title)+'</a>').join('')+'</nav>';
-    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.map(article).join(''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
+    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.slice(0,visibleCount).map(article).join('')+(activePosts.length>visibleCount?'<button class="beat-ref-more" id="beatMore" type="button">Load more articles ('+(activePosts.length-visibleCount)+' remaining)</button>':''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
     setMeta(config.title+' — Chart Beat','Stories, analysis and insights from the charts.','/chart-beat/'+active);
     bindLinks();
+    const more=document.getElementById('beatMore');
+    if(more)more.onclick=()=>{visibleCount+=12;render()};
     portalEl.querySelectorAll('[data-beat-blog]').forEach(el=>el.onclick=e=>{
       e.preventDefault();
       if(active===el.dataset.beatBlog)return;
-      active=el.dataset.beatBlog;selectedYear='';selectedMonth='';openYears=new Set();
+      active=el.dataset.beatBlog;selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();
       history.pushState({},'',appHref('/chart-beat/'+active));render();window.scrollTo({top:0,behavior:'smooth'});
     });
-    portalEl.querySelector('[data-beat-all]').onclick=()=>{selectedYear='';selectedMonth='';openYears=new Set();render()};
+    portalEl.querySelector('[data-beat-all]').onclick=()=>{selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();render()};
     portalEl.querySelectorAll('[data-beat-year]').forEach(el=>el.onclick=()=>{
       const year=el.dataset.beatYear;
       if(openYears.has(year))openYears.delete(year);else openYears.add(year);
-      selectedYear=year;selectedMonth='';render();
+      selectedYear=year;selectedMonth='';visibleCount=12;render();
     });
     portalEl.querySelectorAll('[data-beat-month]').forEach(el=>el.onclick=()=>{
-      const [year,month]=el.dataset.beatMonth.split('|');selectedYear=year;selectedMonth=month;
+      const [year,month]=el.dataset.beatMonth.split('|');selectedYear=year;selectedMonth=month;visibleCount=12;
       openYears.add(year);render();
     });
     hydratePortalImages();
   };
-  // Dates are loaded independently so the editorial archive is not blocked by weekly-chart fetches.
-  const beatWeeklyData={};
-  render();
-  await Promise.all(Object.entries(CHART_BEAT_BLOGS).map(async ([blog,c])=>{
-    try{beatWeeklyData[blog]=await loadWeekly(c.chart)}catch{}
-  }));
-  if(routeParts()[0]==='chart-beat')render();
+  await render();
 }
 
 
