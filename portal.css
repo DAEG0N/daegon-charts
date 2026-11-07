@@ -4597,3 +4597,33 @@ html body .global-static-header .theme-btn .fa-moon{
 .beat-ref-loading{padding:50px 16px;text-align:center;color:var(--muted-foreground)}
 @media(max-width:900px){.beat-ref-layout{grid-template-columns:1fr;gap:20px}.beat-ref-archive{position:static;max-height:280px}.beat-ref-page{padding:0 14px 50px}}
 @media(max-width:600px){.beat-ref-page{padding:0 10px 40px}.beat-ref-page .ref-hero{padding:28px 0 30px}.beat-ref-tabs{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:18px}.beat-ref-tabs a{width:100%}.beat-ref-archive{padding:12px;max-height:200px}.beat-ref-article{padding:16px}.beat-ref-cover{height:200px}.beat-ref-text{font-size:14px;line-height:1.75}.beat-ref-article h2{font-size:22px}}
+
+/* Chart Beat: preserve the complete image, regardless of portrait or landscape orientation. */
+.beat-ref-article img.beat-ref-cover{
+  width:100%;height:auto;max-height:440px;object-fit:contain;
+  object-position:center;background:var(--muted);border-radius:10px;
+}
+.beat-ref-article .beat-ref-cover.beat-ref-artist{
+  width:100%;height:auto;min-height:170px;max-height:440px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--muted);overflow:hidden;
+}
+.beat-ref-article .beat-ref-artist img{
+  display:block;width:100%;height:auto;max-height:440px;
+  object-fit:contain;object-position:center;
+}
+.beat-ref-text{max-width:76ch;text-align:left;line-height:1.85}
+.beat-ref-text p{margin:0 0 1.15em;overflow-wrap:break-word}
+.beat-ref-text p:first-child{font-size:1.06em;line-height:1.75}
+.beat-ref-text p:last-child{margin-bottom:0}
+.beat-ref-more{
+  border:1px solid var(--border);background:var(--card);color:var(--foreground);
+  border-radius:10px;padding:13px 20px;min-height:44px;
+  cursor:pointer;font-weight:800;font-size:13px;
+}
+.beat-ref-more:hover{border-color:var(--accent);color:var(--accent)}
+@media(max-width:600px){
+ .beat-ref-article img.beat-ref-cover,.beat-ref-article .beat-ref-artist img{max-height:340px}
+ .beat-ref-article .beat-ref-cover.beat-ref-artist{max-height:340px}
+ .beat-ref-text{text-align:left}
+}
