@@ -1307,13 +1307,11 @@ function goatHistoricalPerformance(position,kind){
   if(pos>50)return 0;
   return 100*Math.pow(Math.max(0,(51-pos)/50),1.5);
 }
-// The Daegon 100 ranks weekly songs by Sales × 3 + Streams × 2 + Airplay.
-// Sum that weekly Points score for the lifetime GOAT Songs ranking, never a rank-position proxy.
+// GOAT Songs uses the exact Points column from the weekly Daegon 100 sheet (column Q).
+// Do not recalculate points from Sales, Streams, Airplay or chart position.
 function daegonSongWeeklyPoints(entry){
-  if(entry.points!==''&&entry.points!=null&&Number.isFinite(Number(String(entry.points).replace(/\./g,'').replace(',','.')))){
-    return metricNumber(entry.points);
-  }
-  return metricNumber(entry.sales)*3+metricNumber(entry.streams)*2+metricNumber(entry.airplay);
+  const value=String(entry.points??'').trim();
+  return value===''?0:metricNumber(value);
 }
 async function computeGoatExact(chartId){
   if(generatedGoatCache.has(chartId))return generatedGoatCache.get(chartId);
