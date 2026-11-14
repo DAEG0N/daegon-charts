@@ -427,7 +427,7 @@ function bindHomeSidebar(){
   });
 }
 
-async // Chart Beat uses only Deezer for artist photography; never the site's Apple Music resolver.
+// Chart Beat uses only Deezer for artist photography; never the site's Apple Music resolver.
 function chartBeatDeezerImage(artist,context='article'){
   const name=String(artist||'').trim();
   if(!name)return '';
@@ -451,7 +451,7 @@ async function hydrateChartBeatDeezer(root=portalEl){
     }
   }));
 }
-function hydratePortalImages(){
+async function hydratePortalImages(){
   const nodes=[...portalEl.querySelectorAll('[data-portal-image]')];
   const limit=6;let i=0;
   async function worker(){
