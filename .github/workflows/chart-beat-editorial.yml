@@ -1,0 +1,45 @@
+name: Prepare Chart Beat editorial drafts
+
+on:
+  workflow_dispatch:
+    inputs:
+      chart_date:
+        description: "Optional chart date (YYYY-MM-DD); blank selects latest sheet date"
+        required: false
+        type: string
+  schedule:
+    # Saturday, 09:00 Brasília time (UTC-3), after Thursday chart close.
+    - cron: "0 12 * * 6"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    if: ${{ vars.EDITORIAL_MODEL != '' }}
+    steps:
+      - name: Check out charts
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate offline editorial drafts
+        env:
+          EDITORIAL_API_KEY: ${{ secrets.EDITORIAL_API_KEY }}
+          EDITORIAL_MODEL: ${{ vars.EDITORIAL_MODEL }}
+          CHART_DATE: ${{ inputs.chart_date }}
+        run: |
+          if [ -z "$EDITORIAL_API_KEY" ]; then
+            echo "Missing EDITORIAL_API_KEY secret. Configure before running."
+            exit 1
+          fi
+          node scripts/build-chart-beat.mjs
+      - name: Upload drafts for editorial fact-checking
+        uses: actions/upload-artifact@v4
+        with:
+          name: chart-beat-drafts
+          path: data/chart-beat-drafts.json
+          if-no-files-found: error
+          retention-days: 30
