@@ -2158,7 +2158,7 @@ async function renderChartBeat(){
   const requested=routeParts()[1];
   let active=CHART_BEAT_BLOGS[requested]?requested:'hot100';
   let selectedYear='',selectedMonth='';
-  const requestedArticle=new URLSearchParams(location.search).get('article');
+  let requestedArticle=new URLSearchParams(location.search).get('article');
   let openYears=new Set();
   let sequence=0,visibleCount=12;
   const render=async()=>{
@@ -2219,17 +2219,18 @@ async function renderChartBeat(){
     portalEl.querySelectorAll('[data-beat-blog]').forEach(el=>el.onclick=e=>{
       e.preventDefault();
       if(active===el.dataset.beatBlog)return;
-      active=el.dataset.beatBlog;selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();
+      active=el.dataset.beatBlog;requestedArticle=null;selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();
       history.pushState({},'',appHref('/chart-beat/'+active));render();window.scrollTo({top:0,behavior:'smooth'});
     });
-    portalEl.querySelector('[data-beat-all]').onclick=()=>{selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();render()};
+    portalEl.querySelector('[data-beat-all]').onclick=()=>{requestedArticle=null;history.replaceState({},'',appHref('/chart-beat/'+active));selectedYear='';selectedMonth='';visibleCount=12;openYears=new Set();render()};
     portalEl.querySelectorAll('[data-beat-year]').forEach(el=>el.onclick=()=>{
       const year=el.dataset.beatYear;
+      requestedArticle=null;history.replaceState({},'',appHref('/chart-beat/'+active));
       if(openYears.has(year))openYears.delete(year);else openYears.add(year);
       selectedYear=year;selectedMonth='';visibleCount=12;render();
     });
     portalEl.querySelectorAll('[data-beat-month]').forEach(el=>el.onclick=()=>{
-      const [year,month]=el.dataset.beatMonth.split('|');selectedYear=year;selectedMonth=month;visibleCount=12;
+      const [year,month]=el.dataset.beatMonth.split('|');requestedArticle=null;history.replaceState({},'',appHref('/chart-beat/'+active));selectedYear=year;selectedMonth=month;visibleCount=12;
       openYears.add(year);render();
     });
     hydratePortalImages();
