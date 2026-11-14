@@ -622,6 +622,7 @@ async function renderHome(){
   loading('Home');
   // Load all eight official weekly charts for the No. 1 This Week section.
   const ids=['songs','albums','artists','radioSongs','topStreamingAlbums','topAlbumSales','streamingSongs','digitalSongsSales'];
+  const editorialPromise=loadChartBeatBundle().catch(error=>{console.warn('Chart Beat home unavailable:',error);return null});
   const all=await Promise.all(ids.map(async id=>{try{return await loadWeekly(id)}catch{return {chartId:id,dates:[],entriesByDate:{}}}}));
   const byId=Object.fromEntries(ids.map((id,i)=>[id,all[i]]));
   const mainIds=['songs','albums','artists'];
@@ -655,10 +656,28 @@ async function renderHome(){
     firstTimers.map(e=>'<div class="ref-first-card"><div class="ref-first-chart">'+esc(charts.artists.title)+'</div><div class="ref-first-art">'+refThumb(e,'artist')+'<span>DEBUT</span></div><div class="ref-first-copy"><div class="ref-first-pos">NO. '+e.position+'</div><div class="ref-first-title">'+entityLink(e,'artist')+'</div><a href="'+appHref(chartPath('artists',e.date))+'" class="ref-first-see">See Chart</a></div></div>').join('')+
     '</div></section>';
 
-  const beatDates=[...byId.songs.dates].reverse().slice(0,3);
+  // Feature the newest published editorial article from each flagship chart.
+  const publishedBeat=await editorialPromise;
+  const featuredBeat=[
+    ['hot100','DAEGON 100'],
+    ['top100Albums','TOP 100 ALBUMS'],
+    ['artists','ARTIST 50']
+  ].map(([blog,label])=>{
+    const posts=publishedBeat?.posts?.[blog];
+    if(!Array.isArray(posts))return null;
+    const newest=[...posts].filter(p=>p&&p.title&&p.text).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date))[0];
+    return newest?{blog,label,post:newest}:null;
+  }).filter(Boolean);
   const beat='<section class="ref-home-section"><div class="ref-section-banner"><span>Chart Beat</span><a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat">View All <i class="fas fa-arrow-right"></i></a></div><div class="ref-beat-list">'+
-    beatDates.map(d=>{const es=byId.songs.entriesByDate[d]||[],e=es[0];return e?'<a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat" class="ref-beat-card"><div class="ref-beat-art">'+refThumb({name:e.artist,artist:e.artist},'artist')+'</div><div class="ref-beat-copy"><div class="ref-no1-chart">'+esc(charts.songs.title)+'</div><div class="ref-beat-title">'+esc(e.name)+' leads the '+esc(charts.songs.title)+'</div><div class="ref-beat-date">'+fmtDate(d)+'</div></div></a>':''}).join('')+
-    '</div></section>';
+    (featuredBeat.length?featuredBeat.map(({blog,label,post})=>{
+      const target='/chart-beat/'+blog+'?article='+encodeURIComponent(String(post.key));
+      const image=/^https:\/\//i.test(post.image||'')
+        ?'<img src="'+escAttr(post.image)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'
+        :refThumb({name:post.artist||'',artist:post.artist||''},'artist');
+      return '<a href="'+appHref(target)+'" data-portal-link="'+escAttr(target)+'" class="ref-beat-card"><div class="ref-beat-art">'+image+'</div><div class="ref-beat-copy"><div class="ref-no1-chart">'+esc(label)+'</div><div class="ref-beat-title">'+esc(post.title)+'</div>'+
+        (post.subtitle?'<div class="ref-beat-deck">'+esc(post.subtitle)+'</div>':'')+
+        '<div class="ref-beat-date">'+esc(post.date||'')+'</div></div></a>';
+    }).join(''):'<p class="portal-empty">No published articles yet.</p>')+'</div></section>';
 
   const main='<div class="ref-home-hero"><div>CHARTS</div><h1>daegon charts</h1><p>Weekly music charts, year-end rankings & greatest of all time lists</p></div>'+
     editorialBlock(
@@ -2139,6 +2158,7 @@ async function renderChartBeat(){
   const requested=routeParts()[1];
   let active=CHART_BEAT_BLOGS[requested]?requested:'hot100';
   let selectedYear='',selectedMonth='';
+  const requestedArticle=new URLSearchParams(location.search).get('article');
   let openYears=new Set();
   let sequence=0,visibleCount=12;
   const render=async()=>{
@@ -2167,6 +2187,7 @@ async function renderChartBeat(){
       months.get(month).push(p);
     }
     const activePosts=posts.filter(p=>{
+      if(requestedArticle)return String(p.key)===requestedArticle;
       const d=beatDateParts(p.date);
       return (!selectedYear||d.year===selectedYear)&&(!selectedMonth||d.month===selectedMonth);
     });
@@ -2188,8 +2209,9 @@ async function renderChartBeat(){
       return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+(p.subtitle?'<p class="beat-ref-deck">'+esc(p.subtitle)+'</p>':'')+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
         relatedLink+'</article>';
     };
+    const backToArticles=requestedArticle?'<a class="beat-ref-related" href="'+appHref('/chart-beat/'+active)+'" data-portal-link="/chart-beat/'+active+'">← All '+esc(config.title)+' articles</a>':'';
     const tabs='<nav class="beat-ref-tabs" aria-label="Chart Beat categories">'+Object.entries(CHART_BEAT_BLOGS).map(([key,c])=>'<a href="'+appHref('/chart-beat/'+key)+'" data-beat-blog="'+key+'" class="'+(key===active?'active':'')+'" '+(key===active?'aria-current="page"':'')+'>'+esc(c.title)+'</a>').join('')+'</nav>';
-    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.slice(0,visibleCount).map(article).join('')+(activePosts.length>visibleCount?'<button class="beat-ref-more" id="beatMore" type="button">Load more articles ('+(activePosts.length-visibleCount)+' remaining)</button>':''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
+    portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+tabs+backToArticles+'<div class="beat-ref-layout">'+archive+'<main class="beat-ref-articles">'+(activePosts.length?activePosts.slice(0,visibleCount).map(article).join('')+(activePosts.length>visibleCount?'<button class="beat-ref-more" id="beatMore" type="button">Load more articles ('+(activePosts.length-visibleCount)+' remaining)</button>':''):'<div class="portal-empty">No posts yet.</div>')+'</main></div></div>');
     setMeta(config.title+' — Chart Beat','Stories, analysis and insights from the charts.','/chart-beat/'+active);
     bindLinks();
     const more=document.getElementById('beatMore');
