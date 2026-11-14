@@ -683,17 +683,22 @@ async function renderHome(){
   // Feature the newest published editorial article from each flagship chart.
   const publishedBeat=await editorialPromise;
   const featuredBeat=[
-    ['hot100','DAEGON 100'],
-    ['top100Albums','TOP 100 ALBUMS'],
-    ['artists','ARTIST 50']
-  ].map(([blog,label])=>{
+    ['hot100','DAEGON 100','songs'],
+    ['top100Albums','TOP 100 ALBUMS','albums'],
+    ['artists','ARTIST 50','artists']
+  ].map(([blog,label,chartId])=>{
     const posts=publishedBeat?.posts?.[blog];
-    if(!Array.isArray(posts))return null;
-    const newest=[...posts].filter(p=>p&&p.title&&p.text).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date))[0];
-    return newest?{blog,label,post:newest}:null;
+    const latestChartDate=latest(chartId).date;
+    if(!latestChartDate)return null;
+    const newest=Array.isArray(posts)?[...posts].filter(p=>p&&p.title&&p.text).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date))[0]:null;
+    const currentDate=latestChartDate.slice(0,10);
+    const articleDate=newest?.date?new Date(beatTimestamp(newest.date)).toISOString().slice(0,10):'';
+    // Never label an article from a previous edition as the newest Chart Beat story.
+    return {blog,label,date:currentDate,post:articleDate===currentDate?newest:null};
   }).filter(Boolean);
   const beat='<section class="ref-home-section"><div class="ref-section-banner"><span>Chart Beat</span><a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat">View All <i class="fas fa-arrow-right"></i></a></div><div class="ref-beat-list">'+
-    (featuredBeat.length?featuredBeat.map(({blog,label,post})=>{
+    (featuredBeat.length?featuredBeat.map(({blog,label,date,post})=>{
+      if(!post)return '<div class="ref-beat-card ref-beat-pending"><div class="ref-beat-copy"><div class="ref-no1-chart">'+esc(label)+'</div><div class="ref-beat-title">Latest chart edition: '+esc(fmtDate(date))+'</div><div class="ref-beat-deck">Editorial article in preparation. Previous stories remain in the Chart Beat archive.</div></div></div>';
       const target='/chart-beat/'+blog+'?article='+encodeURIComponent(String(post.key));
       const image=chartBeatDeezerImage(post.artist,'home');
       return '<a href="'+appHref(target)+'" data-portal-link="'+escAttr(target)+'" class="ref-beat-card"><div class="ref-beat-art">'+image+'</div><div class="ref-beat-copy"><div class="ref-no1-chart">'+esc(label)+'</div><div class="ref-beat-title">'+esc(post.title)+'</div>'+
