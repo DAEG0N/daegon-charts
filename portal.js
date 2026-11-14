@@ -2077,19 +2077,8 @@ const CHART_BEAT_BLOGS={
   artists:{title:'Top 50 Artists',gid:'157219648',chart:'artists'},
   top100Albums:{title:'Top 100 Albums',gid:'677909186',chart:'albums'}
 };
+// Prepared editorial JSON is the only publication source. No runtime text generation.
 const chartBeatCache=new Map();
-const CHART_BEAT_CACHE_VERSION='v4';
-const CHART_BEAT_CACHE_TTL=6*60*60*1000;
-function beatCachedPosts(blog){
-  try{
-    const cached=JSON.parse(localStorage.getItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog)||'null');
-    if(cached&&Date.now()-cached.time<CHART_BEAT_CACHE_TTL&&Array.isArray(cached.posts))return cached.posts;
-  }catch{}
-  return null;
-}
-function beatStorePosts(blog,posts){
-  try{localStorage.setItem('dc_beat_'+CHART_BEAT_CACHE_VERSION+'_'+blog,JSON.stringify({time:Date.now(),posts}));}catch{}
-}
 function beatParagraphs(text){
   // Preserve the authored narrative rather than reconstructing a stream of chart statistics.
   const safe=String(text||'').replace(/\r/g,'').trim();
@@ -2120,53 +2109,15 @@ function beatClosestWeek(value,dates){
 }
 async function loadChartBeatPosts(blog){
   if(chartBeatCache.has(blog))return chartBeatCache.get(blog);
-  const stored=beatCachedPosts(blog);
-  if(stored){const ready=Promise.resolve(stored);chartBeatCache.set(blog,ready);return ready;}
-  const config=CHART_BEAT_BLOGS[blog];
   const promise=(async()=>{
-    // Published editorial articles are static. Visitors never wait for writing/generation.
-    try{
-      const response=await fetch(appHref('/data/chart-beat-editorial.json'),{cache:'force-cache'});
-      if(response.ok){
-        const prepared=await response.json();
-        const entries=prepared?.posts?.[blog];
-        if(Array.isArray(entries)&&entries.length){
-          const posts=entries.map((p,i)=>({...p,key:p.key??i})).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date));
-          beatStorePosts(blog,posts);
-          return posts;
-        }
-      }
-    }catch(error){console.warn('Chart Beat prepared articles unavailable:',error)}
-    // Legacy articles may contain quoted line breaks: do not use the weekly row-by-line CSV parser.
-    const raw=await fetchText(PORTAL_SHEET+config.gid);
-    const rows=[];let row=[],field='',quoted=false;
-    for(let i=0;i<raw.length;i++){
-      const ch=raw[i];
-      if(ch==='"'){
-        if(quoted&&raw[i+1]==='"'){field+='"';i++;}
-        else quoted=!quoted;
-      }else if(ch===','&&!quoted){row.push(field);field='';}
-      else if((ch==='\n'||ch==='\r')&&!quoted){
-        if(ch==='\r'&&raw[i+1]==='\n')i++;
-        row.push(field);field='';
-        if(row.some(cell=>cell!==''))rows.push(row);
-        row=[];
-      }else field+=ch;
-    }
-    row.push(field);
-    if(row.some(cell=>cell!==''))rows.push(row);
-    if(!rows.length)return [];
-    const header=rows[0].map(x=>String(x||'').toLocaleLowerCase().trim());
-    const col=(names)=>header.findIndex(x=>names.includes(x));
-    const cols={date:col(['date','data']),title:col(['title','título']),text:col(['text','conteúdo']),artist:col(['artist','artista']),image:col(['image','imagem','photo','foto']),link:col(['chartlink'])};
-    if(cols.title<0||cols.text<0)throw new Error('Chart Beat spreadsheet is missing Title or Text columns');
-    const posts=rows.slice(1).map((r,i)=>({
-      key:i,title:r[cols.title]||'Untitled',date:cols.date>=0?r[cols.date]||'':'',
-      text:r[cols.text]||'',artist:cols.artist>=0?r[cols.artist]||'':'',
-      image:cols.image>=0?r[cols.image]||'':'',chartLink:cols.link>=0?r[cols.link]||'':''
-    })).filter(p=>p.title.trim()||p.text.trim()).sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date)||b.key-a.key);
-    beatStorePosts(blog,posts);
-    return posts;
+    const response=await fetch(appHref('/data/chart-beat-editorial.json'),{cache:'no-cache'});
+    if(!response.ok)throw new Error('Published Chart Beat articles unavailable (HTTP '+response.status+')');
+    const prepared=await response.json();
+    const entries=prepared?.posts?.[blog];
+    if(!Array.isArray(entries))throw new Error('No editorial collection for '+blog);
+    return entries.map((p,i)=>({...p,key:p.key??i}))
+      .filter(p=>p.title&&p.text)
+      .sort((a,b)=>beatTimestamp(b.date)-beatTimestamp(a.date));
   })();
   chartBeatCache.set(blog,promise);
   promise.catch(()=>chartBeatCache.delete(blog));
@@ -2182,7 +2133,7 @@ async function renderChartBeat(){
   const render=async()=>{
     const serial=++sequence;
     setMode(true);
-    if(!chartBeatCache.has(active)&&!beatCachedPosts(active)){
+    if(!chartBeatCache.has(active)){
       portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="beat-ref-loading">Loading articles…</div></div>');
     }
     setMeta('Chart Beat','Stories, analysis and insights from the charts.','/chart-beat');
@@ -2223,7 +2174,7 @@ async function renderChartBeat(){
       const chartHref=validRelated?(related.startsWith('/')?appHref(related):related):'';
       const internalRelated=chartHref.startsWith('/');
       const relatedLink=chartHref?'<a class="beat-ref-related" href="'+escAttr(chartHref)+'" '+(internalRelated?'data-portal-link="'+escAttr(related)+'"':'target="_blank" rel="noopener noreferrer"')+'><i class="fas fa-chart-bar"></i> View the related weekly chart</a>':'';
-      return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
+      return '<article class="beat-ref-article">'+photo+'<div class="beat-ref-date">'+esc(p.date)+'</div><h2>'+esc(p.title)+'</h2>'+(p.subtitle?'<p class="beat-ref-deck">'+esc(p.subtitle)+'</p>':'')+artist+'<div class="beat-ref-text">'+formattedText+'</div>'+
         relatedLink+'</article>';
     };
     const tabs='<nav class="beat-ref-tabs" aria-label="Chart Beat categories">'+Object.entries(CHART_BEAT_BLOGS).map(([key,c])=>'<a href="'+appHref('/chart-beat/'+key)+'" data-beat-blog="'+key+'" class="'+(key===active?'active':'')+'" '+(key===active?'aria-current="page"':'')+'>'+esc(c.title)+'</a>').join('')+'</nav>';
