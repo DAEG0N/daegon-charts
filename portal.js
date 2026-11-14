@@ -443,7 +443,7 @@ async function hydrateChartBeatDeezer(root=portalEl){
     try{url=await imageFn(name)}catch{}
     if(!/^https:\/\//i.test(url))return;
     for(const node of nodes){
-      if(node.dataset.beatDeezerArtist!==name||!node.isConnected)return;
+      if(node.dataset.beatDeezerArtist!==name||!node.isConnected)continue;
       const img=document.createElement('img');
       img.src=url;img.alt=name;img.loading='lazy';img.decoding='async';
       node.replaceChildren(img);
