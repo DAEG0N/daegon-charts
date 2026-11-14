@@ -2115,11 +2115,19 @@ async function renderGoat(chartSeg){
     portalEl.querySelectorAll('[data-goat-detail]').forEach(b=>b.onclick=e=>{
       e.preventDefault();
       e.stopPropagation();
-      const y=window.scrollY;
       const key=b.dataset.goatDetail;
-      if(openDetails.has(key))openDetails.delete(key);else openDetails.add(key);
-      draw();
-      keepViewportPosition(y);
+      const card=b.closest('.exact-chart-card');
+      if(!card)return;
+      // Expand the existing row instead of rebuilding the entire GOAT page.
+      // Rebuilding loses the reader's scroll anchoring and moves the viewport.
+      const willOpen=!openDetails.has(key);
+      if(willOpen)openDetails.add(key);else openDetails.delete(key);
+      const details=card.querySelector('.exact-details');
+      if(details)details.classList.toggle('open',willOpen);
+      card.querySelectorAll('[data-goat-detail]').forEach(button=>{
+        button.textContent=willOpen?'−':'+';
+        button.setAttribute('aria-expanded',String(willOpen));
+      });
     });
 
     const prev=document.getElementById('exactGoatPrev'),next=document.getElementById('exactGoatNext');
