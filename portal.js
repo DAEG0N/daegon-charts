@@ -2124,7 +2124,7 @@ async function renderGoat(chartSeg){
         if(!activeInput.isConnected)return;
         draw();
         const replacementInput=document.getElementById('exactGoatSearch');
-        if(replacementInput&&document.activeElement!==replacementInput){
+        if(replacementInput){
           replacementInput.focus({preventScroll:true});
           if(cursorStart!==null&&cursorEnd!==null)replacementInput.setSelectionRange(cursorStart,cursorEnd);
         }
@@ -2142,7 +2142,7 @@ async function renderGoat(chartSeg){
       e.preventDefault();
       e.stopPropagation();
       const key=b.dataset.goatDetail;
-      const card=b.closest('.exact-chart-card');
+      const card=b.closest('.goat-weekly-card');
       if(!card)return;
       // Expand the existing row instead of rebuilding the entire GOAT page.
       // Rebuilding loses the reader's scroll anchoring and moves the viewport.
