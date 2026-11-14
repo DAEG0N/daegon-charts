@@ -2079,6 +2079,19 @@ const CHART_BEAT_BLOGS={
 };
 // Prepared editorial JSON is the only publication source. No runtime text generation.
 const chartBeatCache=new Map();
+let chartBeatBundlePromise=null;
+function loadChartBeatBundle(){
+  if(chartBeatBundlePromise)return chartBeatBundlePromise;
+  chartBeatBundlePromise=(async()=>{
+    const response=await fetch(appHref('/data/chart-beat-editorial.json'),{cache:'no-cache'});
+    if(!response.ok)throw new Error('Published Chart Beat articles unavailable (HTTP '+response.status+')');
+    const prepared=await response.json();
+    if(!prepared||typeof prepared.posts!=='object')throw new Error('Invalid Chart Beat editorial data');
+    return prepared;
+  })();
+  chartBeatBundlePromise.catch(()=>{chartBeatBundlePromise=null});
+  return chartBeatBundlePromise;
+}
 function beatParagraphs(text){
   // Preserve the authored narrative rather than reconstructing a stream of chart statistics.
   const safe=String(text||'').replace(/\r/g,'').trim();
@@ -2110,9 +2123,7 @@ function beatClosestWeek(value,dates){
 async function loadChartBeatPosts(blog){
   if(chartBeatCache.has(blog))return chartBeatCache.get(blog);
   const promise=(async()=>{
-    const response=await fetch(appHref('/data/chart-beat-editorial.json'),{cache:'no-cache'});
-    if(!response.ok)throw new Error('Published Chart Beat articles unavailable (HTTP '+response.status+')');
-    const prepared=await response.json();
+    const prepared=await loadChartBeatBundle();
     const entries=prepared?.posts?.[blog];
     if(!Array.isArray(entries))throw new Error('No editorial collection for '+blog);
     return entries.map((p,i)=>({...p,key:p.key??i}))
@@ -2142,7 +2153,7 @@ async function renderChartBeat(){
     catch(error){
       if(serial!==sequence)return;
       portalEl.innerHTML=shellHtml('<div class="beat-ref-page">'+refHero('BEAT','Chart Beat','Stories, analysis and insights from the charts')+'<div class="portal-empty">Unable to load Chart Beat articles. '+esc(error.message||'')+' <button type="button" id="beatRetry">Try again</button></div></div>');
-      portalEl.querySelector('#beatRetry').onclick=()=>{chartBeatCache.delete(active);render()};
+      portalEl.querySelector('#beatRetry').onclick=()=>{chartBeatCache.delete(active);chartBeatBundlePromise=null;render()};
       return;
     }
     if(serial!==sequence)return;
