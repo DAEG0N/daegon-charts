@@ -4696,3 +4696,77 @@ html body .global-static-header .theme-btn .fa-moon{
 .beat-deezer-article img{
   object-fit:contain;
 }
+
+/* GOAT rankings reuse the same card structure and visual hierarchy as Weekly Charts. */
+.exact-goat-page .exact-chart-list{
+  display:flex;flex-direction:column;gap:12px;max-width:896px;margin:0 auto;
+}
+.exact-goat-page .goat-weekly-card{
+  width:100%;min-width:0;overflow-anchor:none;
+  padding:14px 16px;
+  border:1px solid var(--border);
+  background:var(--card);color:var(--card-foreground);
+  box-shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.exact-goat-page .goat-weekly-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.exact-goat-page .goat-weekly-card .desktop-row{
+  grid-template-columns:auto auto minmax(0,1fr) auto;
+  gap:12px;align-items:center;
+}
+.exact-goat-page .goat-weekly-spacer{display:none}
+.exact-goat-page .goat-weekly-card .cover,
+.exact-goat-page .goat-weekly-card .m-cover{padding:0;overflow:hidden}
+.exact-goat-page .goat-weekly-card .cover .ref-thumb,
+.exact-goat-page .goat-weekly-card .m-cover .ref-thumb{
+  width:100%;height:100%;min-width:0;flex:auto;
+  border:0!important;border-radius:0!important;
+}
+.exact-goat-page .goat-weekly-card .cover .ref-thumb-round,
+.exact-goat-page .goat-weekly-card .m-cover .ref-thumb-round{border-radius:50%!important}
+.exact-goat-page .goat-weekly-card .cover img,
+.exact-goat-page .goat-weekly-card .m-cover img{width:100%;height:100%;object-fit:cover}
+.exact-goat-page .goat-weekly-card .right{display:flex;align-items:center;gap:14px}
+.exact-goat-page .goat-weekly-card .metrics{
+  display:grid;grid-template-columns:auto minmax(34px,auto);
+  row-gap:7px;column-gap:12px;min-width:176px;
+}
+.exact-goat-page .goat-weekly-card .metrics .metric-label{font-size:10px;white-space:nowrap}
+.exact-goat-page .goat-weekly-card .metrics .metric-v{font-size:13px;white-space:nowrap}
+.exact-goat-page .goat-weekly-card .details-btn{cursor:pointer}
+.exact-goat-page .goat-weekly-details{display:none;margin-top:12px;width:100%}
+.exact-goat-page .goat-weekly-details.open{display:block}
+.exact-goat-page .goat-weekly-details .details-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;
+}
+.exact-goat-page .goat-weekly-details .detail-box{
+  padding:12px 8px;min-width:0;text-align:center;overflow-wrap:anywhere;
+}
+.exact-goat-page .goat-weekly-details .detail-box span{
+  display:block;font-size:10px;font-weight:700;color:var(--muted-foreground);text-transform:uppercase;
+}
+.exact-goat-page .goat-weekly-details .detail-box strong{
+  display:block;font-size:14px;margin-top:4px;color:var(--foreground);
+}
+.exact-goat-page .goat-mobile-points{display:none}
+@media(max-width:900px){
+  .exact-goat-page .exact-goat-flex{gap:16px}
+  .exact-goat-page .exact-goat-sidebar{width:220px;flex-basis:220px}
+  .exact-goat-page .goat-weekly-card .metrics{min-width:145px;column-gap:8px}
+}
+@media(max-width:767px){
+  .exact-goat-page{padding-left:10px;padding-right:10px}
+  .exact-goat-page .exact-chart-list{gap:8px}
+  .exact-goat-page .goat-weekly-card{padding:10px 9px}
+  .exact-goat-page .goat-weekly-card .desktop-row{display:none!important}
+  .exact-goat-page .goat-weekly-card .mobile-row{display:flex!important;gap:8px;align-items:flex-start}
+  .exact-goat-page .goat-weekly-card .m-entry{min-width:0;flex:1}
+  .exact-goat-page .goat-weekly-card .m-title{overflow-wrap:anywhere}
+  .exact-goat-page .goat-weekly-card .m-artist{white-space:normal;overflow-wrap:anywhere}
+  .exact-goat-page .goat-mobile-points{
+    display:block;margin-top:4px;font-size:10px;line-height:1.3;
+    color:var(--muted-foreground);overflow-wrap:anywhere;
+  }
+  .exact-goat-page .goat-mobile-points strong{color:var(--foreground)}
+  .exact-goat-page .goat-weekly-details .details-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
