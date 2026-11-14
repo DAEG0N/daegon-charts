@@ -1831,7 +1831,7 @@ async function renderPeriod(type,chartSeg){
       e.preventDefault();
       e.stopPropagation();
       const key=b.dataset.yecDetail;
-      const card=b.closest('.exact-chart-card');
+      const card=b.closest('.goat-weekly-card');
       const cardTop=card?.getBoundingClientRect().top;
       const details=card?.querySelector('.exact-details');
       const willOpen=!openDetails.has(key);
@@ -2040,29 +2040,44 @@ async function renderGoat(chartSeg){
         '</div>'+
       '</div>';
 
-    const cards=displayed.map((e,i)=>{
+    const cards=displayed.map(e=>{
       const key='goat-'+chartSeg+'-'+e.position+'-'+slugify(e.name);
       const isFirst=e.position===1;
-      return '<div class="exact-chart-card '+(isFirst?'first':'')+'">'+
-        '<div class="exact-desktop-row">'+
-          '<div class="exact-rank '+(isFirst?'first':'')+'">'+e.position+'</div>'+
-          '<div class="exact-art '+(data.kind==='artist'?'exact-artist-art ':'')+(isFirst?'first':'')+'">'+refThumb(e,data.kind)+'</div>'+
-          '<div class="exact-entry"><div class="exact-title">'+entityLink(e,data.kind)+'</div>'+(data.kind!=='artist'?'<div class="exact-artist">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
-          '<div class="exact-goat-desktop-metric">'+esc(metricValue(e))+'</div>'+
-          '<button type="button" class="exact-plus" data-goat-detail="'+escAttr(key)+'">'+(openDetails.has(key)?'−':'+')+'</button>'+
+      const expanded=openDetails.has(key);
+      const mainMetric=chartSeg==='goatSongs'?'TOTAL POINTS':'CHART PERFORMANCE';
+      const mainNumber=chartSeg==='goatSongs'?fmtNum(e.totalPoints):Number(e.chartPerformance||0).toLocaleString('en-US',{maximumFractionDigits:1});
+      const metricItems=[
+        ['PEAK','#'+(e.peak||e.position)],
+        ['WEEKS',fmtNum(e.weeks)],
+        [mainMetric,mainNumber]
+      ];
+      const metricGrid=metricItems.map(([label,value])=>'<span class="metric-label">'+esc(label)+'</span><strong class="metric-v">'+esc(value)+'</strong>').join('');
+      const metricMobile='<div class="m-metrics"><span>Peak <strong>#'+(e.peak||e.position)+'</strong></span><span>Weeks <strong>'+fmtNum(e.weeks)+'</strong></span></div>';
+      const toggler='<button type="button" class="action details-btn" aria-label="Toggle GOAT details" aria-expanded="'+expanded+'" data-goat-detail="'+escAttr(key)+'">'+(expanded?'−':'+')+'</button>';
+      return '<article class="chart-card goat-weekly-card '+(isFirst?'goat-weekly-first':'')+'">'+
+        '<div class="desktop-row">'+
+          '<div class="rank-wrap"><div class="rank-num '+(isFirst?'one':'')+'">'+e.position+'</div></div>'+
+          '<div class="cover '+(isFirst?'one':'')+'">'+refThumb(e,data.kind)+'</div>'+
+          '<div class="goat-weekly-spacer" aria-hidden="true"></div>'+
+          '<div class="entry"><div class="entry-title '+(isFirst?'one':'')+'">'+entityLink(e,data.kind)+'</div>'+(data.kind!=='artist'?'<div class="artist '+(isFirst?'one':'')+'">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
+          '<div class="right"><div class="metrics">'+metricGrid+'</div><div class="actions">'+toggler+'</div></div>'+
         '</div>'+
-        '<div class="exact-mobile-row">'+
-          '<div class="exact-mobile-rank">'+e.position+'</div>'+
-          '<div class="exact-mobile-art '+(data.kind==='artist'?'exact-artist-art ':'')+(isFirst?'first':'')+'">'+refThumb(e,data.kind)+'</div>'+
-          '<div class="exact-mobile-copy"><div class="exact-mobile-title">'+entityLink(e,data.kind)+'</div>'+(data.kind!=='artist'?'<div class="exact-mobile-artist">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
-          '<button type="button" class="exact-plus" data-goat-detail="'+escAttr(key)+'">'+(openDetails.has(key)?'−':'+')+'</button>'+
+        '<div class="mobile-row">'+
+          '<div class="m-rank"><div class="m-rank-num">'+e.position+'</div></div>'+
+          '<div class="m-cover '+(isFirst?'one':'')+'">'+refThumb(e,data.kind)+'</div>'+
+          '<div class="m-entry"><div class="m-title">'+entityLink(e,data.kind)+'</div>'+(data.kind!=='artist'?'<div class="m-artist">'+artistLink(e.artist||'')+'</div>':'')+
+            metricMobile+'<div class="goat-mobile-points">'+esc(mainMetric)+': <strong>'+esc(mainNumber)+'</strong></div></div>'+
+          '<div class="m-actions">'+toggler+'</div>'+
         '</div>'+
-        '<div class="exact-details '+(openDetails.has(key)?'open':'')+'">'+
-          '<div><span>Peak</span><strong>#'+(e.peak||e.position)+'</strong></div>'+
-          '<div><span>Weeks</span><strong>'+(e.weeks||0)+'</strong></div>'+
-          '<div><span>'+esc(sortOptions.find(x=>x[0]===sort)?.[1]||'Metric')+'</span><strong>'+esc(metricValue(e))+'</strong></div>'+
+        '<div class="details-panel goat-weekly-details '+(expanded?'open':'')+'">'+
+          '<div class="details-grid">'+
+            '<div class="detail-box"><span>Peak</span><strong>#'+(e.peak||e.position)+'</strong></div>'+
+            '<div class="detail-box"><span>Weeks on Chart</span><strong>'+fmtNum(e.weeks)+'</strong></div>'+
+            '<div class="detail-box"><span>Weeks at No. 1</span><strong>'+fmtNum(e.weeksAt1)+'</strong></div>'+
+            '<div class="detail-box"><span>'+esc(mainMetric)+'</span><strong>'+esc(mainNumber)+'</strong></div>'+
+          '</div>'+
         '</div>'+
-      '</div>';
+      '</article>';
     }).join('');
 
     const main=
@@ -2077,10 +2092,6 @@ async function renderGoat(chartSeg){
           '</aside>'+
           '<main class="exact-goat-content">'+
             '<div class="exact-goat-heading"><div class="exact-goat-bg">Greatest of All Time</div><h1>'+esc(cfg.title)+'</h1><p>'+sorted.length+' greatest of all time · June 24, 2017–present</p></div>'+
-            (podiumOrder.length?'<div class="exact-goat-podium">'+podiumOrder.map((e,idx)=>{
-              const first=top3[0]&&e.position===top3[0].position;
-              return '<div class="exact-podium-card '+(first?'first':'')+'"><div class="exact-podium-rank">'+e.position+'</div><div class="exact-podium-title">'+esc(e.name)+'</div>'+(data.kind!=='artist'?'<div class="exact-podium-artist">'+esc(e.artist||'')+'</div>':'')+'<div class="exact-podium-metric">'+esc(metricValue(e))+'</div></div>';
-            }).join('')+'</div>':'')+
             '<div class="exact-goat-search-wrap"><input id="exactGoatSearch" value="'+escAttr(search)+'" placeholder="Search...">'+(search?'<button id="exactGoatClear">×</button>':'')+'</div>'+
             '<div class="exact-results-count">'+filtered.length+' item'+(filtered.length===1?'':'s')+' found'+(search?' matching “'+esc(search)+'”':'')+'</div>'+
             '<div class="exact-chart-list">'+cards+'</div>'+
@@ -2137,7 +2148,7 @@ async function renderGoat(chartSeg){
       // Rebuilding loses the reader's scroll anchoring and moves the viewport.
       const willOpen=!openDetails.has(key);
       if(willOpen)openDetails.add(key);else openDetails.delete(key);
-      const details=card.querySelector('.exact-details');
+      const details=card.querySelector('.goat-weekly-details');
       if(details)details.classList.toggle('open',willOpen);
       card.querySelectorAll('[data-goat-detail]').forEach(button=>{
         button.textContent=willOpen?'−':'+';
