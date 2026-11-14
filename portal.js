@@ -427,7 +427,31 @@ function bindHomeSidebar(){
   });
 }
 
-async function hydratePortalImages(){
+async // Chart Beat uses only Deezer for artist photography; never the site's Apple Music resolver.
+function chartBeatDeezerImage(artist,context='article'){
+  const name=String(artist||'').trim();
+  if(!name)return '';
+  return '<div class="beat-deezer-image beat-deezer-'+context+'" data-beat-deezer-artist="'+escAttr(name)+'" aria-label="'+escAttr(name)+'"><i class="fas fa-user" aria-hidden="true"></i></div>';
+}
+async function hydrateChartBeatDeezer(root=portalEl){
+  const nodes=[...(root?.querySelectorAll('[data-beat-deezer-artist]')||[])];
+  const imageFn=window.DaegonDeezerArtist;
+  if(!nodes.length||typeof imageFn!=='function')return;
+  const names=[...new Set(nodes.map(node=>node.dataset.beatDeezerArtist).filter(Boolean))];
+  await Promise.all(names.map(async name=>{
+    let url='';
+    try{url=await imageFn(name)}catch{}
+    if(!/^https:\/\//i.test(url))return;
+    for(const node of nodes){
+      if(node.dataset.beatDeezerArtist!==name||!node.isConnected)return;
+      const img=document.createElement('img');
+      img.src=url;img.alt=name;img.loading='lazy';img.decoding='async';
+      node.replaceChildren(img);
+      node.classList.add('beat-deezer-loaded');
+    }
+  }));
+}
+function hydratePortalImages(){
   const nodes=[...portalEl.querySelectorAll('[data-portal-image]')];
   const limit=6;let i=0;
   async function worker(){
@@ -671,9 +695,7 @@ async function renderHome(){
   const beat='<section class="ref-home-section"><div class="ref-section-banner"><span>Chart Beat</span><a href="'+appHref('/chart-beat')+'" data-portal-link="/chart-beat">View All <i class="fas fa-arrow-right"></i></a></div><div class="ref-beat-list">'+
     (featuredBeat.length?featuredBeat.map(({blog,label,post})=>{
       const target='/chart-beat/'+blog+'?article='+encodeURIComponent(String(post.key));
-      const image=/^https:\/\//i.test(post.image||'')
-        ?'<img src="'+escAttr(post.image)+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:contain">'
-        :refThumb({name:post.artist||'',artist:post.artist||''},'artist');
+      const image=chartBeatDeezerImage(post.artist,'home');
       return '<a href="'+appHref(target)+'" data-portal-link="'+escAttr(target)+'" class="ref-beat-card"><div class="ref-beat-art">'+image+'</div><div class="ref-beat-copy"><div class="ref-no1-chart">'+esc(label)+'</div><div class="ref-beat-title">'+esc(post.title)+'</div>'+
         (post.subtitle?'<div class="ref-beat-deck">'+esc(post.subtitle)+'</div>':'')+
         '<div class="ref-beat-date">'+esc(post.date||'')+'</div></div></a>';
@@ -692,7 +714,7 @@ async function renderHome(){
     '<a href="'+appHref('/chart-battle')+'" data-portal-link="/chart-battle" class="ref-battle-float"><span>VS</span><div><small>New Mini-Game!</small><strong>Play Chart Battle 🏆</strong></div></a>';
 
   setMode(true);portalEl.innerHTML=shellHtml(main,true);setMeta('Daegon Charts — Weekly Music Charts & Historical Archive','Weekly music charts, year-end rankings and greatest of all time lists.','/',true);
-  bindLinks();hydratePortalImages();bindHomeSidebar();
+  bindLinks();hydratePortalImages();hydrateChartBeatDeezer();bindHomeSidebar();
 
   let active='songs';
   const bindTabs=()=>{
@@ -2197,8 +2219,7 @@ async function renderChartBeat(){
         (openYears.has(year)?'<div class="beat-ref-months">'+[...months].map(([month,items])=>'<button type="button" data-beat-month="'+escAttr(year+'|'+month)+'" class="'+(selectedYear===year&&selectedMonth===month?'active':'')+'">'+esc(month)+' <span>('+items.length+')</span></button>').join('')+'</div>':'')+'</div>'
       ).join('')+'</aside>';
     const article=(p)=>{
-      const photo=/^https:\/\//i.test(p.image)?'<img class="beat-ref-cover" src="'+escAttr(p.image)+'" alt="" loading="lazy">':
-        (p.artist?'<div class="beat-ref-cover beat-ref-artist" data-portal-image data-kind="artist" data-name="'+escAttr(p.artist)+'" data-artist="'+escAttr(p.artist)+'"></div>':'');
+      const photo=chartBeatDeezerImage(p.artist,'article');
       const formattedText=beatParagraphs(p.text);
       const artist=p.artist?'<div class="beat-ref-artist-credit"><i class="fas fa-user"></i> '+artistLink(p.artist)+'</div>':'';
       const related=String(p.chartLink||'').trim();
@@ -2233,7 +2254,7 @@ async function renderChartBeat(){
       const [year,month]=el.dataset.beatMonth.split('|');requestedArticle=null;history.replaceState({},'',appHref('/chart-beat/'+active));selectedYear=year;selectedMonth=month;visibleCount=12;
       openYears.add(year);render();
     });
-    hydratePortalImages();
+    hydrateChartBeatDeezer();
   };
   await render();
 }
