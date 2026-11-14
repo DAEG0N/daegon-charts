@@ -1313,6 +1313,8 @@ function daegonSongWeeklyPoints(entry){
   const value=String(entry.points??'').trim();
   return value===''?0:metricNumber(value);
 }
+// All GOAT charts are based solely on published weekly spreadsheet rows from 24 June 2017 onward.
+const GOAT_SHEET_START='2017-06-24';
 async function computeGoatExact(chartId){
   if(generatedGoatCache.has(chartId))return generatedGoatCache.get(chartId);
   const job=(async()=>{
@@ -1320,6 +1322,7 @@ async function computeGoatExact(chartId){
     const data=await loadWeekly(cfg.weeklyId);
     const aggregated={};
     for(const date of data.dates){
+      if(date<GOAT_SHEET_START)continue;
       for(const e of data.entriesByDate[date]||[]){
         const key=(e.name+'||'+e.artist).toLowerCase();
         if(!aggregated[key])aggregated[key]={
@@ -1473,12 +1476,13 @@ async function renderGoatIndex(){
   const topAlbums=[...albums.entries].sort((a,b)=>b.chartPerformance-a.chartPerformance||b.weeks-a.weeks).slice(0,5).map((e,i)=>({...e,position:i+1}));
   const topArtists=[...artists.entries].sort((a,b)=>b.chartPerformance-a.chartPerformance||b.weeks-a.weeks).slice(0,5).map((e,i)=>({...e,position:i+1}));
   const allCharts=exactGoatIds.map(id=>({id,title:officialGoat[id].title}));
-  const main='<div class="orig-page">'+originalHero('GREATEST OF ALL TIME','Greatest of All Time','Long-term rankings built from the complete weekly archive')+
+  const main='<div class="orig-page">'+originalHero('GREATEST OF ALL TIME','Greatest of All Time','All-time rankings from the weekly spreadsheets since June 24, 2017')+
     editorialBlock(
       'What Greatest of All Time means here',
       [
-        'GOAT Songs is ranked by Total Points: the sum of each song’s weekly Daegon 100 points throughout the available archive. The weekly formula is Sales × 3 + Streaming × 2 + Airplay.',
-        'GOAT Albums and Artists retain their existing historical chart-performance methodology. Weeks on Chart remains available as a separate longevity view.'
+        'All GOAT rankings use only the weekly spreadsheet records from June 24, 2017 onward. Earlier charts and Supabase historical data are not counted.',
+        'GOAT Songs is ranked by Total Points: the sum of the original Points column from each weekly Daegon 100 appearance since June 24, 2017.',
+        'GOAT Albums, Artists and Radio retain their existing chart-performance methodology, but use the same June 2017 starting date. Weeks on Chart remains available as a separate longevity view.'
       ],
       [['/methodology','How chart metrics are calculated'],['/number-ones','Browse every No. 1']]
     )+
@@ -2072,7 +2076,7 @@ async function renderGoat(chartSeg){
             '<a class="exact-back-card" href="'+appHref('/goat')+'"><i class="fas fa-arrow-left"></i> All Greatest of All Time</a>'+
           '</aside>'+
           '<main class="exact-goat-content">'+
-            '<div class="exact-goat-heading"><div class="exact-goat-bg">Greatest of All Time</div><h1>'+esc(cfg.title)+'</h1><p>'+sorted.length+' greatest of all time</p></div>'+
+            '<div class="exact-goat-heading"><div class="exact-goat-bg">Greatest of All Time</div><h1>'+esc(cfg.title)+'</h1><p>'+sorted.length+' greatest of all time · June 24, 2017–present</p></div>'+
             (podiumOrder.length?'<div class="exact-goat-podium">'+podiumOrder.map((e,idx)=>{
               const first=top3[0]&&e.position===top3[0].position;
               return '<div class="exact-podium-card '+(first?'first':'')+'"><div class="exact-podium-rank">'+e.position+'</div><div class="exact-podium-title">'+esc(e.name)+'</div>'+(data.kind!=='artist'?'<div class="exact-podium-artist">'+esc(e.artist||'')+'</div>':'')+'<div class="exact-podium-metric">'+esc(metricValue(e))+'</div></div>';
