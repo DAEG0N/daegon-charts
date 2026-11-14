@@ -2103,7 +2103,22 @@ async function renderGoat(chartSeg){
       search=e.target.value;
       page=1;
       clearTimeout(window.__exactGoatSearchTimer);
-      window.__exactGoatSearchTimer=setTimeout(draw,120);
+      const activeInput=e.target;
+      const cursorStart=activeInput.selectionStart;
+      const cursorEnd=activeInput.selectionEnd;
+      const scrollY=window.scrollY;
+      window.__exactGoatSearchTimer=setTimeout(()=>{
+        // The GOAT view rebuilds its markup when results change. Restore focus and
+        // caret on the newly rendered search input so typing remains uninterrupted.
+        if(!activeInput.isConnected)return;
+        draw();
+        const replacementInput=document.getElementById('exactGoatSearch');
+        if(replacementInput&&document.activeElement!==replacementInput){
+          replacementInput.focus({preventScroll:true});
+          if(cursorStart!==null&&cursorEnd!==null)replacementInput.setSelectionRange(cursorStart,cursorEnd);
+        }
+        if(Math.abs(window.scrollY-scrollY)>2)window.scrollTo({top:scrollY,behavior:'instant'});
+      },180);
     };
 
     const clear=document.getElementById('exactGoatClear');
