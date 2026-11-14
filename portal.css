@@ -4627,3 +4627,11 @@ html body .global-static-header .theme-btn .fa-moon{
  .beat-ref-article .beat-ref-cover.beat-ref-artist{max-height:340px}
  .beat-ref-text{text-align:left}
 }
+
+/* Chart Beat decks: distinguish the editorial story from the facts in its body. */
+.beat-ref-article .beat-ref-deck{
+  margin:-4px 0 18px;max-width:75ch;
+  font-size:clamp(15px,1.65vw,18px);
+  line-height:1.5;font-weight:500;color:var(--muted-foreground);
+}
+.beat-ref-article .beat-ref-text{max-width:76ch}
