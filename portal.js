@@ -1994,7 +1994,8 @@ async function renderGoat(chartSeg){
 
   const sortOptions=[
     ['performance',chartSeg==='goatSongs'?'Total Points':'Chart Performance'],
-    ['weeks','Weeks on Chart']
+    ['weeks','Weeks on Chart'],
+    ...(['goatSongs','goatAlbums','goatArtists'].includes(chartSeg)?[['units','Total Units']]:[])
   ];
 
   const metricValue=e=>{
@@ -2009,7 +2010,8 @@ async function renderGoat(chartSeg){
     let sorted=[...data.entries];
     const sorters={
       performance:(a,b)=>chartSeg==='goatSongs'?(b.totalPoints-a.totalPoints||b.weeks-a.weeks||b.weeksAt1-a.weeksAt1||a.peak-b.peak):(b.chartPerformance-a.chartPerformance||b.weeks-a.weeks||b.weeksAt1-a.weeksAt1||a.peak-b.peak),
-      weeks:(a,b)=>b.weeks-a.weeks||(chartSeg==='goatSongs'?b.totalPoints-a.totalPoints:b.chartPerformance-a.chartPerformance)||b.weeksAt1-a.weeksAt1||a.peak-b.peak
+      weeks:(a,b)=>b.weeks-a.weeks||(chartSeg==='goatSongs'?b.totalPoints-a.totalPoints:b.chartPerformance-a.chartPerformance)||b.weeksAt1-a.weeksAt1||a.peak-b.peak,
+      units:(a,b)=>b.totalUnits-a.totalUnits||(chartSeg==='goatSongs'?b.totalPoints-a.totalPoints:b.chartPerformance-a.chartPerformance)||b.weeks-a.weeks||a.peak-b.peak
     };
     sorted.sort(sorters[sort]||sorters.performance);
     sorted=sorted.map((e,i)=>({...e,position:i+1}));
@@ -2044,8 +2046,8 @@ async function renderGoat(chartSeg){
       const key='goat-'+chartSeg+'-'+e.position+'-'+slugify(e.name);
       const isFirst=e.position===1;
       const expanded=openDetails.has(key);
-      const mainMetric=chartSeg==='goatSongs'?'TOTAL POINTS':'CHART PERFORMANCE';
-      const mainNumber=chartSeg==='goatSongs'?fmtNum(e.totalPoints):Number(e.chartPerformance||0).toLocaleString('en-US',{maximumFractionDigits:1});
+      const mainMetric=sort==='units'?'TOTAL UNITS':(sort==='weeks'?'WEEKS ON CHART':(chartSeg==='goatSongs'?'TOTAL POINTS':'CHART PERFORMANCE'));
+      const mainNumber=sort==='units'?fmtNum(e.totalUnits):(sort==='weeks'?fmtNum(e.weeks):(chartSeg==='goatSongs'?fmtNum(e.totalPoints):Number(e.chartPerformance||0).toLocaleString('en-US',{maximumFractionDigits:1})));
       const metricItems=[
         ['PEAK','#'+(e.peak||e.position)],
         ['WEEKS',fmtNum(e.weeks)],
