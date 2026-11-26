@@ -1931,34 +1931,80 @@ async function renderDecadeDetailExact(chartSeg){
     const values=decades.map(x=>x+'s');
     const selectedLabel=selected+'s';
 
-    const main='<div class="orig-period-layout">'+
-      '<aside class="orig-period-side">'+
-        '<div class="orig-period-side-links">'+
+    const cards=arr.map((entry,i)=>{
+      const e={...entry,position:i+1};
+      const key='decade-'+chartSeg+'-'+selected+'-'+e.position+'-'+slugify(e.name);
+      const isFirst=e.position===1;
+      const expanded=false;
+      const mainMetric=(artistView?.metric|| (weeklyId==='songs'?'points':'units'))==='points'?'TOTAL POINTS':'TOTAL UNITS';
+      const mainNumber=fmtNum(e.totalMetric);
+      const metricItems=[
+        ['PEAK','#'+(e.peak||e.position)],
+        ['WEEKS',fmtNum(e.weeks)],
+        [mainMetric,mainNumber]
+      ];
+      const metricGrid=metricItems.map(([label,value])=>'<span class="metric-label">'+esc(label)+'</span><strong class="metric-v">'+esc(value)+'</strong>').join('');
+      const metricMobile='<div class="m-metrics"><span>Peak <strong>#'+(e.peak||e.position)+'</strong></span><span>Weeks <strong>'+fmtNum(e.weeks)+'</strong></span></div>';
+      const toggler='<button type="button" class="action details-btn" aria-label="Toggle decade-end details" aria-expanded="'+expanded+'" data-decade-detail="'+escAttr(key)+'">'+(expanded?'−':'+')+'</button>';
+      return '<article class="chart-card goat-weekly-card '+(isFirst?'goat-weekly-first':'')+'">'+
+        '<div class="desktop-row">'+
+          '<div class="rank-wrap"><div class="rank-num '+(isFirst?'one':'')+'">'+e.position+'</div></div>'+
+          '<div class="cover '+(isFirst?'one':'')+'">'+refThumb(e,kind)+'</div>'+
+          '<div class="goat-weekly-spacer" aria-hidden="true"></div>'+
+          '<div class="entry"><div class="entry-title '+(isFirst?'one':'')+'">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="artist '+(isFirst?'one':'')+'">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
+          '<div class="right"><div class="metrics">'+metricGrid+'</div><div class="actions">'+toggler+'</div></div>'+
+        '</div>'+
+        '<div class="mobile-row">'+
+          '<div class="m-rank"><div class="m-rank-num">'+e.position+'</div></div>'+
+          '<div class="m-cover '+(isFirst?'one':'')+'">'+refThumb(e,kind)+'</div>'+
+          '<div class="m-entry"><div class="m-title">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="m-artist">'+artistLink(e.artist||'')+'</div>':'')+
+            metricMobile+'<div class="goat-mobile-points">'+esc(mainMetric)+': <strong>'+esc(mainNumber)+'</strong></div></div>'+
+          '<div class="m-actions">'+toggler+'</div>'+
+        '</div>'+
+        '<div class="details-panel goat-weekly-details '+(expanded?'open':'')+'">'+
+          '<div class="details-grid">'+
+            '<div class="detail-box"><span>Peak</span><strong>#'+(e.peak||e.position)+'</strong></div>'+
+            '<div class="detail-box"><span>Weeks on Chart</span><strong>'+fmtNum(e.weeks)+'</strong></div>'+
+            '<div class="detail-box"><span>Weeks at No. 1</span><strong>'+fmtNum(e.weeksAt1)+'</strong></div>'+
+            '<div class="detail-box"><span>'+esc(mainMetric)+'</span><strong>'+esc(mainNumber)+'</strong></div>'+
+          '</div>'+
+        '</div>'+
+      '</article>';
+    }).join('');
+
+    const main='<div class="exact-goat-page"><div class="exact-goat-flex">'+
+      '<aside class="exact-goat-sidebar">'+
+        '<div class="exact-sidebar-section"><div class="exact-sidebar-label">Charts</div><div class="exact-desktop-only exact-goat-chart-links">'+
           navItems.map(([id,label])=>'<a href="'+appHref('/decade-end/'+id)+'?decade='+encodeURIComponent(selected)+'" class="'+(id===chartSeg?'active':'')+'">'+esc(label)+'</a>').join('')+
-        '</div>'+
-        '<a class="orig-period-back" href="'+appHref('/decade-end')+'?decade='+encodeURIComponent(selected)+'"><i class="fas fa-arrow-left"></i> All Decade-End</a>'+
+        '</div><div class="exact-mobile-only exact-goat-mobile-nav"><a class="exact-goat-mobile-active" href="'+appHref(path)+'?decade='+encodeURIComponent(selected)+'">'+esc(title)+'</a><button type="button" class="exact-mobile-more" data-decade-more>+ More Charts</button><div class="exact-mobile-more-list">'+navItems.filter(([id])=>id!==chartSeg).map(([id,label])=>'<a href="'+appHref('/decade-end/'+id)+'?decade='+encodeURIComponent(selected)+'">'+esc(label)+'</a>').join('')+'</div></div></div>'+
+        '<a class="exact-back-card" href="'+appHref('/decade-end')+'?decade='+encodeURIComponent(selected)+'"><i class="fas fa-arrow-left"></i> All Decade-End</a>'+
       '</aside>'+
-      '<main class="orig-period-main">'+
-        '<div class="orig-period-heading"><h1>'+esc(title)+'</h1></div>'+
+      '<main class="exact-goat-content">'+
+        '<div class="exact-goat-heading"><div class="exact-goat-bg">Decade-End</div><h1>'+esc(title)+'</h1><p>'+arr.length+' items · '+esc(selectedLabel)+'</p></div>'+
         originalYearControls('Decade',values,selectedLabel,'decadedetail')+
-        '<div class="orig-period-list">'+
-          arr.map((e,i)=>'<div class="orig-period-card">'+
-            '<div class="orig-period-rank">'+(i+1)+'</div>'+
-            '<div class="orig-period-art">'+refThumb(e,kind)+'</div>'+
-            '<div class="orig-period-entry">'+
-              '<div class="orig-period-name">'+entityLink(e,kind)+'</div>'+
-              (kind!=='artist'&&e.artist?'<div class="orig-period-artist">'+artistLink(e.artist)+'</div>':'')+
-            '</div>'+
-          '</div>').join('')+
-        '</div>'+
-      '</main>'+
-    '</div>';
+        '<div class="exact-chart-list">'+cards+'</div>'+
+      '</main></div></div>';
 
     setMode(true);
     portalEl.innerHTML=shellHtml(main);
     setMeta('Decade-End - '+title,title+' decade-end rankings for the '+selected+'s.',path);
     bindLinks();
     hydratePortalImages();
+
+    const more=portalEl.querySelector('[data-decade-more]');
+    if(more)more.onclick=()=>{
+      const expanded=more.nextElementSibling.classList.toggle('open');
+      more.textContent=expanded?'− Less':'+ More Charts';
+    };
+    portalEl.querySelectorAll('[data-decade-detail]').forEach(button=>button.onclick=()=>{
+      const card=button.closest('.chart-card');
+      const panel=card.querySelector('.details-panel');
+      const expanded=panel.classList.toggle('open');
+      card.querySelectorAll('[data-decade-detail]').forEach(b=>{
+        b.textContent=expanded?'−':'+';
+        b.setAttribute('aria-expanded',String(expanded));
+      });
+    });
 
     const change=v=>{
       selected=String(v).replace(/s$/,'');
