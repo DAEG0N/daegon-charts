@@ -1741,41 +1741,59 @@ async function renderPeriod(type,chartSeg){
   const kind=data.kind||cfg.kind;
   const path='/year-end/'+chartSeg;
   const pre2017=['yearEndSongs','yearEndArtists','yearEndAlbums','yecHot100Artists','yecArtist50Female','yecArtist50Male','yecArtist50DuoGroup','yearEndNewArtists','yecTop100AlbumsArtists'];
-  const visibleIds=(selected&&selected<'2017')?pre2017:exactYearEndIds;
   let mobileExpanded=false;
   const openDetails=new Set();
 
-  const metricLabel=kind==='artist'&&chartSeg.startsWith('yec')?'Entries':'Units';
+  const metricLabel=['yearEndSongs','yecHot100Artists'].includes(chartSeg)?'TOTAL POINTS':['yearEndRadio','yecRadioSongsArtists'].includes(chartSeg)?'TOTAL AUDIENCE':['yearEndStreamingSongs','yearEndTopStreamingAlbums'].includes(chartSeg)?'TOTAL STREAMS':['yearEndDigitalSongsSales','yearEndTopAlbumSales'].includes(chartSeg)?'TOTAL SALES':'TOTAL UNITS';
 
   const draw=()=>{
     const arr=data.entriesByYear[selected]||[];
+    const visibleIds=(selected&&selected<'2017')?pre2017:exactYearEndIds;
 
-    const desktopCards=arr.map((e,i)=>{
-      const pos=e.position||i+1,isFirst=pos===1,key='yec-'+selected+'-'+pos+'-'+slugify(e.name);
-      return '<div class="exact-chart-card '+(isFirst?'first':'')+'">'+
-        '<div class="exact-desktop-row">'+
-          '<div class="exact-rank '+(isFirst?'first':'')+'">'+pos+'</div>'+
-          '<div class="exact-art '+(kind==='artist'?'exact-artist-art ':'')+(isFirst?'first':'')+'">'+refThumb(e,kind)+'</div>'+
-          '<div class="exact-entry"><div class="exact-title">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="exact-artist">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
-          '<button type="button" class="exact-plus" data-yec-detail="'+escAttr(key)+'">'+(openDetails.has(key)?'−':'+')+'</button>'+
+    const desktopCards=arr.map((entry,i)=>{
+      const e={...entry,position:entry.position||i+1};
+      const key='yec-'+selected+'-'+e.position+'-'+slugify(e.name);
+      const isFirst=e.position===1;
+      const expanded=openDetails.has(key);
+      const mainMetric=metricLabel;
+      const mainNumber=fmtNum(e.totalUnits||0);
+      const metricItems=[
+        ['PEAK','#'+(e.peak||e.position)],
+        ['WEEKS',fmtNum(e.weeks)],
+        [mainMetric,mainNumber]
+      ];
+      const metricGrid=metricItems.map(([label,value])=>'<span class="metric-label">'+esc(label)+'</span><strong class="metric-v">'+esc(value)+'</strong>').join('');
+      const metricMobile='<div class="m-metrics"><span>Peak <strong>#'+(e.peak||e.position)+'</strong></span><span>Weeks <strong>'+fmtNum(e.weeks)+'</strong></span></div>';
+      const toggler='<button type="button" class="action details-btn" aria-label="Toggle Year-End details" aria-expanded="'+expanded+'" data-yec-detail="'+escAttr(key)+'">'+(expanded?'−':'+')+'</button>';
+      return '<article class="chart-card goat-weekly-card '+(isFirst?'goat-weekly-first':'')+'">'+
+        '<div class="desktop-row">'+
+          '<div class="rank-wrap"><div class="rank-num '+(isFirst?'one':'')+'">'+e.position+'</div></div>'+
+          '<div class="cover '+(isFirst?'one':'')+'">'+refThumb(e,kind)+'</div>'+
+          '<div class="goat-weekly-spacer" aria-hidden="true"></div>'+
+          '<div class="entry"><div class="entry-title '+(isFirst?'one':'')+'">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="artist '+(isFirst?'one':'')+'">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
+          '<div class="right"><div class="metrics">'+metricGrid+'</div><div class="actions">'+toggler+'</div></div>'+
         '</div>'+
-        '<div class="exact-mobile-row">'+
-          '<div class="exact-mobile-rank">'+pos+'</div>'+
-          '<div class="exact-mobile-art '+(kind==='artist'?'exact-artist-art ':'')+(isFirst?'first':'')+'">'+refThumb(e,kind)+'</div>'+
-          '<div class="exact-mobile-copy"><div class="exact-mobile-title">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="exact-mobile-artist">'+artistLink(e.artist||'')+'</div>':'')+'</div>'+
-          '<button type="button" class="exact-plus" data-yec-detail="'+escAttr(key)+'">'+(openDetails.has(key)?'−':'+')+'</button>'+
+        '<div class="mobile-row">'+
+          '<div class="m-rank"><div class="m-rank-num">'+e.position+'</div></div>'+
+          '<div class="m-cover '+(isFirst?'one':'')+'">'+refThumb(e,kind)+'</div>'+
+          '<div class="m-entry"><div class="m-title">'+entityLink(e,kind)+'</div>'+(kind!=='artist'?'<div class="m-artist">'+artistLink(e.artist||'')+'</div>':'')+
+            metricMobile+'<div class="goat-mobile-points">'+esc(mainMetric)+': <strong>'+esc(mainNumber)+'</strong></div></div>'+
+          '<div class="m-actions">'+toggler+'</div>'+
         '</div>'+
-        '<div class="exact-details '+(openDetails.has(key)?'open':'')+'">'+
-          '<div><span>'+(kind==='artist'&&chartSeg.startsWith('yec')?'Entries':'Peak')+'</span><strong>'+(kind==='artist'&&chartSeg.startsWith('yec')?(e.entries||1):'#'+(e.peak||pos))+'</strong></div>'+
-          '<div><span>Weeks</span><strong>'+(e.weeks||'—')+'</strong></div>'+
-          '<div><span>'+metricLabel+'</span><strong>'+(metricLabel==='Entries'?(e.entries||1):fmtNum(e.totalUnits||0))+'</strong></div>'+
+        '<div class="details-panel goat-weekly-details '+(expanded?'open':'')+'">'+
+          '<div class="details-grid">'+
+            '<div class="detail-box"><span>Peak</span><strong>#'+(e.peak||e.position)+'</strong></div>'+
+            '<div class="detail-box"><span>Weeks on Chart</span><strong>'+fmtNum(e.weeks)+'</strong></div>'+
+            (e.entries!=null?'<div class="detail-box"><span>Entries</span><strong>'+fmtNum(e.entries)+'</strong></div>':'')+
+            '<div class="detail-box"><span>'+esc(mainMetric)+'</span><strong>'+esc(mainNumber)+'</strong></div>'+
+          '</div>'+
         '</div>'+
-      '</div>';
+      '</article>';
     }).join('');
 
     const mobileNav=
-      '<div class="exact-mobile-only exact-mobile-chart-nav">'+
-        '<a class="exact-mobile-active" href="'+appHref(path)+'?year='+encodeURIComponent(selected)+'">'+esc(cfg.title)+'</a>'+
+      '<div class="exact-mobile-only exact-goat-mobile-nav">'+
+        '<a class="exact-goat-mobile-active" href="'+appHref(path)+'?year='+encodeURIComponent(selected)+'">'+esc(cfg.title)+'</a>'+
         '<button type="button" class="exact-mobile-more" data-yec-more>'+(mobileExpanded?'− Less':'+ More Charts')+'</button>'+
         '<div class="exact-mobile-more-list '+(mobileExpanded?'open':'')+'">'+
           visibleIds.filter(id=>id!==chartSeg).map(id=>'<a href="'+appHref('/year-end/'+id)+'?year='+encodeURIComponent(selected)+'">'+esc(officialYearEnd[id]?.title||id)+'</a>').join('')+
@@ -1783,23 +1801,23 @@ async function renderPeriod(type,chartSeg){
       '</div>';
 
     const desktopNav=
-      '<div class="exact-desktop-only exact-desktop-chart-nav">'+
+      '<div class="exact-desktop-only exact-goat-chart-links">'+
         visibleIds.map(id=>'<a href="'+appHref('/year-end/'+id)+'?year='+encodeURIComponent(selected)+'" class="'+(id===chartSeg?'active':'')+'">'+esc(officialYearEnd[id]?.title||id)+'</a>').join('')+
       '</div>';
 
     const main=
-      '<div class="exact-yec-layout">'+
-        '<aside class="exact-yec-sidebar">'+
-          mobileNav+desktopNav+
+      '<div class="exact-goat-page"><div class="exact-goat-flex">'+
+        '<aside class="exact-goat-sidebar">'+
+          '<div class="exact-sidebar-section"><div class="exact-sidebar-label">Charts</div>'+mobileNav+desktopNav+'</div>'+
           '<a class="exact-back-card" href="'+appHref('/year-end')+'?year='+encodeURIComponent(selected)+'"><i class="fas fa-arrow-left"></i> All Year-End</a>'+
         '</aside>'+
-        '<main class="exact-yec-main">'+
-          '<div class="exact-yec-heading"><h1>'+esc(cfg.title)+'</h1></div>'+
+        '<main class="exact-goat-content">'+
+          '<div class="exact-goat-heading"><div class="exact-goat-bg">Year-End Charts</div><h1>'+esc(cfg.title)+'</h1><p>'+arr.length+' items · '+esc(selected)+'</p></div>'+
           originalYearControls('Year',years,selected,'detailperiod')+
           '<div class="exact-chart-list">'+desktopCards+'</div>'+
           (!arr.length?'<div class="exact-empty">'+(selected?'No data for this year.':'Select a year.')+'</div>':'')+
         '</main>'+
-      '</div>';
+      '</div></div>';
 
     setMode(true);
     portalEl.innerHTML=shellHtml(main);
@@ -1833,11 +1851,11 @@ async function renderPeriod(type,chartSeg){
       const key=b.dataset.yecDetail;
       const card=b.closest('.goat-weekly-card');
       const cardTop=card?.getBoundingClientRect().top;
-      const details=card?.querySelector('.exact-details');
+      const details=card?.querySelector('.details-panel');
       const willOpen=!openDetails.has(key);
       if(willOpen)openDetails.add(key);else openDetails.delete(key);
       if(details)details.classList.toggle('open',willOpen);
-      card?.querySelectorAll('[data-yec-detail]').forEach(btn=>{btn.textContent=willOpen?'−':'+'});
+      card?.querySelectorAll('[data-yec-detail]').forEach(btn=>{btn.textContent=willOpen?'−':'+';btn.setAttribute('aria-expanded',String(willOpen))});
       b.blur();
       if(card&&Number.isFinite(cardTop)){
         const restore=()=>{
